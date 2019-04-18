@@ -1,0 +1,11 @@
+# config.yml changes needed to connect to Azure DevOps
+
+backend:
+  name: azure
+  branch: branch-name
+  project: organization-name/project-name
+  repo: repo-name
+  tenant_id: tenant-id
+  app_id: registered-app-id  
+  
+site_url: "http://localhost:8080"
