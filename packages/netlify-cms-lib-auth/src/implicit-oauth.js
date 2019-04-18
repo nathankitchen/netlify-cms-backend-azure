@@ -23,6 +23,7 @@ export default class ImplicitAuthenticator {
     this.auth_url = `${baseURL}/${authEndpoint}`;
     this.appID = config.app_id;
     this.clearHash = config.clearHash;
+    this.responseType = config.responseType ? config.responseType : 'token';
   }
 
   authenticate(options, cb) {
@@ -38,8 +39,10 @@ export default class ImplicitAuthenticator {
     const authURL = new URL(this.auth_url);
     authURL.searchParams.set('client_id', this.appID);
     authURL.searchParams.set('redirect_uri', document.location.origin + document.location.pathname);
-    authURL.searchParams.set('response_type', 'token');
+    authURL.searchParams.set('response_type', this.responseType);
     authURL.searchParams.set('scope', options.scope);
+    // Obsolete Azure documentation claims resource is optional...
+    options.resource && authURL.searchParams.set('resource', options.resource);
     authURL.searchParams.set('state', createNonce());
 
     document.location.assign(authURL.href);
