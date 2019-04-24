@@ -10,6 +10,15 @@ import {
 
 const CMS_BRANCH_PREFIX = 'cms/';
 
+// from here you can navigate trees, looking for blobs
+// https://dev.azure.com/{tenant}/{project}/_apis/git/repositories/{repo}/items?path=/&version={branch}&api-version=5.0
+
+// or to specify known folder
+// https://dev.azure.com/{tenant}/{project}/_apis/git/repositories/{repo}}/items?path={path}&version=[branch]&api-version=5.0
+
+// or to specify recursionLevel (WTF that does all options return same json, no recusion into scopePath, on my repo)
+// https://dev.azure.com/{tenant}/{project}/_apis/git/repositories/{repo}}/items?scopePath=/content&recursionLevel=oneLevel&version=[branch]&api-version=5.0
+
 export default class API {
   constructor(config) {
     this.api_root = (config.api_root || 'https://dev.azure.com') + `/${config.project}/_apis/git/repositories/`;
