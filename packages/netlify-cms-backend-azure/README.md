@@ -1,4 +1,11 @@
-# dev-test/config.yml changes needed to connect to Azure DevOps
+# attempt to adapt netlify-cms for dev.azure.com 
+
+WARNING - This option is currently under construction and lightyears away from complete or any PROD use
+
+Feel welcome to contribute
+
+
+## dev-test/config.yml changes needed to connect to Azure DevOps
 
 backend:
   name: azure
