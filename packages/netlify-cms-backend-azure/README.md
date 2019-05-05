@@ -93,4 +93,55 @@ there is even another step required to allow that this app is allowed to make AP
 
 TODO - add screenshots here and rework description
 
+## getting started
+
+local testing and development (and contributing)
+
+### get onto the latest dev
+
+```
+git clone https://github.com/chrismade/netlify-cms-backend-azure
+cd netlify-cms-backend-azure
+git checkout netlify-cms-backend-azure
+
+```
+please refer to 'chrismade' as long as these developments have not been merged into the netlify-master
+
+make sure you have all required settings for your specific Azure and dev.auzre.com environment made in
+```
+dev-test/config.yml
+
+```
+### start the app
+
+again: make sure you have a recent node/npm and also 'lerna' and 'yarn' installed
+
+```
+npm install
+npm start
+
+```
+## known issues
+
+in its current state it is easier to describe the few things that is ( / seem to be) working
+
+### working
+
+* start and user login, return to home screen
+* list existing (pre-created) entries in collections
+* click one entry from that list to open editor and find content as expected
+* images in media lib of type PNG
+
+### not yet working
+
+* user login via Azure seems to work, a very long and sane-looking token is created but any API call returns a HTML redirect to the login screen instead of the expected json output - that is an indicator that the AAD permissions for this app are still insufficient - workround is to create a PAT (Personal Access Token) in dev.azure.com and use basic auth until the token issue is fixed
+* mozilla/firefox javascript always falls into the .catch-path in function 'request' for the fetch - which is likely a header/cors issue - workaround: use chrome which doesn't show this behaviour
+* writing edited objects
+* create new objects/posts
+* upload media objects
+* editorial workflow
+* delete or rename
+* anything not yet explicitely mentioned as working  
+
+
 ...
