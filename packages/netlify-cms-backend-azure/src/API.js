@@ -19,16 +19,25 @@ export default class API {
     this.repoURL = `${this.repo}`;
     this.merge_method = config.squash_merges ? 'squash' : 'merge';
     this.initialWorkflowStatus = config.initialWorkflowStatus;
+    this.apiversion = '5.0'; // Azure API version is recommended and sometimes even required
   }
 
   requestHeaders(headers = {}) {
     const baseHeader = {
       'Content-Type': 'application/json',
+	    'Access-Control-Allow-Origin' : '*', // Azure response header requires this
+	    'Origin': '*', 
       ...headers,
     };
 
     if (this.token) {
       baseHeader.Authorization = `token ${this.token}`;
+      // workaround - until token is working as expected and returns expected json instead of non-auth info in html to API calls
+      // create a PAT = personal access token in dev.azure and use that as password
+      // see https://majgis.github.io/2017/09/13/Create-Authorization-Basic-Header/ how to create base64 string for basic auth
+      // or in FF/Chrom-console > btoa('username@something.com:thisIsMyVeryLongPersonalAccessToken')
+      baseHeader.Authorization = 'Basic Y--generate-your-own-auth-string-with-username-and-personal-access-token-base64-encoded-Q==';
+    	console.log('** DEBUG azure' +  baseHeader.Authorization );
       return baseHeader;
     }
 
@@ -47,7 +56,7 @@ export default class API {
 
   urlFor(path, options) {
     const cacheBuster = new Date().getTime();
-    const params = [`ts=${cacheBuster}`];
+    const params = [`ts=${cacheBuster}&api-version=${this.apiversion}`]; // added Azure specific api-version
     if (options.params) {
       for (const key in options.params) {
         params.push(`${key}=${encodeURIComponent(options.params[key])}`);
@@ -56,12 +65,21 @@ export default class API {
     if (params.length) {
       path += `?${params.join('&')}`;
     }
-    return this.api_root + path;
-  }
+    if (path.match(/^https/)) { // Azure specific - path may already be a fully qualified URL 
+      path +=  `?${pathext}`; // assume we have already one divider '?'
+    } else {
+      path = this.api_root + path +  `?${pathext}`;
+    }
+    console.log('** DEBUG azure urlFor  -- path = ' + path + ' -- options: ' + JSON.stringify( options )  );
+    return path;
+    // return this.api_root + path;
+    }
 
   request(path, options = {}) {
     const headers = this.requestHeaders(options.headers || {});
+    console.log('**DEBUG entering req path: ' + path +   ' -- options: ' + JSON.stringify( options ) );
     const url = this.urlFor(path, options);
+	  options.mode = 'cors'; // Azure ensure headers are set to get suitable response
     let responseStatus;
     return fetch(url, { ...options, headers })
       .then(response => {
@@ -71,12 +89,14 @@ export default class API {
           return this.parseJsonResponse(response);
         }
         const text = response.text();
+        console.log('**DEBUG hm, req response was text not json: ' + JSON.stringify( text ) );
         if (!response.ok) {
           return Promise.reject(text);
         }
         return text;
       })
       .catch(error => {
+        console.log('**DEBUG: request catch ' + url + error.message + responseStatus);
         throw new APIError(error.message, responseStatus, 'Azure');
       });
   }
@@ -163,13 +183,14 @@ export default class API {
 
   readFile(path, sha, branch = this.branch) {
     if (sha) {
-      return this.getBlob(sha);
+      return this.getBlob(sha, path); // Azure if we have ObjId = sha then we usually already have an URL, too
     } else {
-      return this.request(`${this.repoURL}/contents/${path}`, {
+      return this.request(`${this.repoURL}/items/${path}`, {
         headers: { Accept: 'application/vnd.github.VERSION.raw' },
-        params: { ref: branch },
+        // params: { ref: branch },
+        params: { version: branch },
         cache: 'no-store',
-      }).catch(error => {
+      }).catch(error => { // Azure - not sure if we will ever get beyond this point
         if (hasIn(error, 'message.errors') && find(error.message.errors, { code: 'too_large' })) {
           const dir = path
             .split('/')
@@ -184,11 +205,12 @@ export default class API {
     }
   }
 
-  getBlob(sha) {
-    return localForage.getItem(`gh.${sha}`).then(cached => {
-      if (cached) {
-        return cached;
-      }
+  getBlob(sha, path) { // In Azure we don't have the ObjectId = sha handy always - caution !
+    // Azure - disable caching as long as we cannot ensure a valid ObjId = sha always
+    // return localForage.getItem(`gh.${sha}`).then(cached => {
+    //  if (cached) {
+    //    return cached;
+    //  }
 
       return this.request(`${this.repoURL}/git/blobs/${sha}`, {
         headers: { Accept: 'application/vnd.github.VERSION.raw' },
@@ -196,20 +218,33 @@ export default class API {
         localForage.setItem(`gh.${sha}`, result);
         return result;
       });
-    });
+    // });
   }
 
   listFiles(path) {
     return this.request(`${this.repoURL}/contents/${path.replace(/\/$/, '')}`, {
-      params: { ref: this.branch },
-    })
+      // params: { ref: this.branch },
+      params: { version: this.branch, path: path }, // Azure
+    }).then(response => {
+      console.log('**DEBUG: getTreeId -- returnObj: ' + JSON.stringify(response) )
+        return response._links.tree.href 
+      })
+      .then ( url => {
+         console.log('**DEBUG: list files  -- url: ' + url )
+        return this.request(`${url}`);
+      })
+      .then(response => {
+        const files = ( response.treeEntries || [ ]);
+          console.log('** DEBUG - treeEntries ' + JSON.stringify(files) );
+      })
       .then(files => {
         if (!Array.isArray(files)) {
           throw new Error(`Cannot list files, path ${path} is not a directory but a ${files.type}`);
         }
         return files;
       })
-      .then(files => files.filter(file => file.type === 'file'));
+      // .then(files => files.filter(file => file.type === 'file'));
+      .then(files => files.filter(file => file.type === 'blob'));
   }
 
   readUnpublishedBranchFile(contentKey) {
