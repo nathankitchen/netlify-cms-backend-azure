@@ -121,6 +121,39 @@ npm install
 npm start
 
 ```
+if everything goes well you will see a message that you can access netlify-cms at
+
+```
+http://localhost:8080
+
+```
+enter this line in Chrome and start testing (working) - Firefox may not work, see known issues
+
+### create test objects
+
+Since we cannot create - and persist - new objects directly you may want to create a few test objects in order to test the listing of existing objects and to jump into edit mode when you click on one of these.
+
+Go to https://dev.azure.com/ - log in, select a project and go to 'repo'. create an empty one just containing a README.md and '.gitigore' if there isn't any content already - then create a few test files (check in your config.yml - if you have the standard 'posts' and 'faq' the path is '_posts' and '_faq'). Double check you are on the 'master' branch.
+
+Also the filename is important and has to follow a certain scheme YYYY-MM-DD-name.md - for instance: 2019-04-10-first.md
+
+```
+---
+layout: blog
+title: overview.en
+date: 2018-10-07T19:21:33.113Z
+thumbnail: 'https://ucarecdn.com/adf1b7e6-3804-4ffa-970c-e12b055d7dff/'
+categories:
+- news
+---
+first line
+second line
+next line
+and so on
+
+```
+Hint: The URL for the thumnail doesn't really matter - you can use anything you want
+
 ## known issues
 
 in its current state it is easier to describe the few things that is ( / seem to be) working
