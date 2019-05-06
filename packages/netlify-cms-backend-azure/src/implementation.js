@@ -95,6 +95,7 @@ export default class Azure {
       .then(files => { // Azure - de-activate filter for debug
         // files.filter(file => file.name.endsWith('.' + extension)))
         console.log('IMPL files-liste: ' + JSON.stringify (files ) );
+        return files;
       })
     .then(this.fetchFiles);
   }
@@ -153,7 +154,7 @@ export default class Azure {
           const sha = objectId;
 	      	const name = relativePath;
       		const path = 'no-path-here';
-          const url2 = new URL(download_url);
+          const url2 = new URL(url);
         if (url2.pathname.match(/.svg$/)) {
           url2.search += (url2.search.slice(1) === '' ? '?' : '&') + 'sanitize=true';
         }
