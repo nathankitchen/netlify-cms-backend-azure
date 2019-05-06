@@ -4,6 +4,26 @@ WARNING - This option is currently under construction and lightyears away from c
 
 Feel welcome to contribute
 
+### why invest into a dev.azure.com connection
+
+netlify-cms is a smart open-source solution which already has connection to github, gitlab and bitbucket - that looks already quite well to cover a lot of use-cases - so why dev.azure.com ?
+
+dev.azure.com in combination with the forever-free services from portal.azure.com provides a very smart enviroment for lots of projects - just one piece is missing - a smart CMS and there is no smart solution in the Azure store.
+
+* dev.azure.com has advantages over github as you can have your repositories private for free.
+
+* there is no need to setup and manage a serverless OAUTH-connector in AWS lambda or any identity service - just use AAD
+
+* Azure pipelines can start building your project when commiting anything in master branch - so no need to setup TravisCI separately
+
+* individuals will likely find everything they need in the free starter version, small-/medium companies can grow with the solution with reasonable costs - many enterprises have their entitlement already integrated so you can easily invite colleagues to your projects
+
+* there is a full-blown project environment with tasks, stories, epics, defect/issues - sprint and backlog management, kanban boards and calenders etc giving everything to manage a website for company or similar - fully integrated to an extend that you still miss on enterprise CMS which costs a fortune - you can even define your own style of agile process - the limit is only ... how much organisation and structure do you want
+
+* the only missing piece is a DAM (digital asset management) - but there are so many inexpensive services already out there to which you can easily connect - any thought in DIY is waste of lifetime ;-)
+
+* dev.azure.com also allows you to handle your SSH keys secretly to you can easily use it in build pipelines to deploy your HUGO or gatsby made HTML to whereever you want (S3, CDN, your own server etc) 
+
 
 ## dev-test/config.yml changes needed to connect to Azure DevOps
 
@@ -117,7 +137,9 @@ dev-test/config.yml
 again: make sure you have a recent node/npm and also 'lerna' and 'yarn' installed
 
 ```
-npm install
+yarn --version
+lerna --version
+
 npm start
 
 ```

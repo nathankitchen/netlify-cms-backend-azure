@@ -57,13 +57,14 @@ export default class API {
   urlFor(path, options) {
     const cacheBuster = new Date().getTime();
     const params = [`ts=${cacheBuster}&api-version=${this.apiversion}`]; // added Azure specific api-version
+    let pathext;
     if (options.params) {
       for (const key in options.params) {
         params.push(`${key}=${encodeURIComponent(options.params[key])}`);
       }
     }
     if (params.length) {
-      path += `?${params.join('&')}`;
+      pathext = `${params.join('&')}`;
     }
     if (path.match(/^https/)) { // Azure specific - path may already be a fully qualified URL 
       path +=  `?${pathext}`; // assume we have already one divider '?'
@@ -205,15 +206,16 @@ export default class API {
     }
   }
 
-  getBlob(sha, path) { // In Azure we don't have the ObjectId = sha handy always - caution !
+  getBlob(sha, url) { // In Azure we don't have the ObjectId = sha handy always - caution !
     // Azure - disable caching as long as we cannot ensure a valid ObjId = sha always
     // return localForage.getItem(`gh.${sha}`).then(cached => {
     //  if (cached) {
     //    return cached;
     //  }
 
-      return this.request(`${this.repoURL}/git/blobs/${sha}`, {
-        headers: { Accept: 'application/vnd.github.VERSION.raw' },
+      // return this.request(`${this.repoURL}/git/blobs/${sha}`, {
+        return this.request(`${url}`, { // Azure
+          headers: { Accept: 'application/vnd.github.VERSION.raw' },
       }).then(result => {
         localForage.setItem(`gh.${sha}`, result);
         return result;
@@ -222,8 +224,9 @@ export default class API {
   }
 
   listFiles(path) {
-    return this.request(`${this.repoURL}/contents/${path.replace(/\/$/, '')}`, {
-      // params: { ref: this.branch },
+    // return this.request(`${this.repoURL}/contents/${path.replace(/\/$/, '')}`, {
+    return this.request(`${this.repoURL}/items/`, { // Azure
+        // params: { ref: this.branch },
       params: { version: this.branch, path: path }, // Azure
     }).then(response => {
       console.log('**DEBUG: getTreeId -- returnObj: ' + JSON.stringify(response) )
@@ -235,16 +238,14 @@ export default class API {
       })
       .then(response => {
         const files = ( response.treeEntries || [ ]);
-          console.log('** DEBUG - treeEntries ' + JSON.stringify(files) );
-      })
-      .then(files => {
+        console.log('** DEBUG - treeEntries ' + JSON.stringify(files) );
         if (!Array.isArray(files)) {
           throw new Error(`Cannot list files, path ${path} is not a directory but a ${files.type}`);
         }
         return files;
       })
       // .then(files => files.filter(file => file.type === 'file'));
-      .then(files => files.filter(file => file.type === 'blob'));
+      .then(files => files.filter(file => file.gitObjectType === 'blob'));    // Azure
   }
 
   readUnpublishedBranchFile(contentKey) {
