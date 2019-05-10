@@ -116,29 +116,37 @@ export default class API {
   }
 
   checkMetadataRef() {
-    return this.request(`${this.repoURL}/git/refs/meta/_netlify_cms?${Date.now()}`, {
+    return this.request(`${this.repoURL}/git/refs/meta/_netlify_cms?${Date.now()}`, { // TODO: rework for Azure
       cache: 'no-store',
     })
       .then(response => response.object)
       .catch(() => {
         // Meta ref doesn't exist
         const readme = {
-          raw:
-            '# Netlify CMS\n\nThis tree is used by the Netlify CMS to store metadata information for specific files and branches.',
+        //  raw:
+        //    '# Netlify CMS\n\nThis tree is used by the Netlify CMS to store metadata information for specific files and branches.',
         };
 
         return this.uploadBlob(readme)
           .then(item =>
-            this.request(`${this.repoURL}/git/trees`, {
-              method: 'POST',
+            // this.request(`${this.repoURL}/git/trees`, {
+            this.request(`${this.repoURL}/git/pushes`, {  // Azure
+                method: 'POST',
               body: JSON.stringify({
-                tree: [{ path: 'README.md', mode: '100644', type: 'blob', sha: item.sha }],
+                // tree: [{ path: 'README.md', mode: '100644', type: 'blob', sha: item.sha }],
+                refUpdates: [{ name: 'refs/meta/_netlify_001', oldObjectId:"0000000000000000000000000000000000000000" }], 
+                commits: [ { comment: "Initial commit." ,
+                  changes: [ { changeType: "add", item: { path: "/readme.md" }, 
+                  newContent: { contentType: "rawtext", 
+                  content: 
+                  '# Netlify CMS\n\nThis tree is used by the Netlify CMS to store metadata information for specific files and branches.'
+                  } } ] } ]
               }),
             }),
           )
-          .then(tree => this.commit('First Commit', tree))
-          .then(response => this.createRef('meta', '_netlify_cms', response.sha))
-          .then(response => response.object);
+          // .then(tree => this.commit('First Commit', tree))
+          // .then(response => this.createRef('meta', '_netlify_cms', response.sha))
+          // .then(response => response.object);
       });
   }
 
@@ -175,8 +183,8 @@ export default class API {
         '%c Checking for MetaData files',
         'line-height: 30px;text-align: center;font-weight: bold',
       );
-      return this.request(`${this.repoURL}/contents/${key}.json`, {
-        params: { ref: 'refs/meta/_netlify_cms' },
+      return this.request(`${this.repoURL}/items/${key}.json`, {
+        params: { version: 'refs/meta/_netlify_cms' },
         headers: { Accept: 'application/vnd.github.VERSION.raw' },
         cache: 'no-store',
       })
