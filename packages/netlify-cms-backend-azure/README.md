@@ -109,7 +109,7 @@ you may want to add more reply-urls when you deploy netlify-cms to a real websit
 
 ### allow API usage for dev.azure.com
 
-there is even another step required to allow that this app is allowed to make API calls to dev.azure.com API (aka VSTS API). Unfortunately I haven't found any commandline options yet - so you have to login into https://portal.azure.com, go to AAD, find your app, choose 'enterprise', and add vso.write
+there is even another step required to allow that this app is allowed to make API calls to dev.azure.com API (aka VSTS API). Unfortunately I haven't found any commandline options yet - so you have to login into https://portal.azure.com, go to AAD, find your app, choose 'enterprise', and add scope: 'vso.code_full'
 
 TODO - add screenshots here and rework description
 

@@ -895,4 +895,14 @@ export default class API {
       body: JSON.stringify({ message, tree: treeSha, parents, author, committer }),
     });
   }
+
+  // In Azure we don't always have the SHA resp ID handy
+  // this function is to get the ObjectId and CommitId (output)
+  // from path and branch (input)
+  getAzureId(path, branch = this.branch ) {
+    return this.request(`${this.repoURL}/items`, {
+      params: { version: this.branch, path: path,
+        '$format': "json", versionType: "Branch", versionOptions: "None" } // Azure hardwired to get expected response format   
+    });
+  }
 }
