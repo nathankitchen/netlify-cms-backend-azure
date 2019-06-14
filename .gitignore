@@ -15,4 +15,4 @@ cypress/screenshots
 /coverage/
 .cache
 *.log
-dev-test/config.yml.dev.ignore
+*.ignore
