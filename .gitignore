@@ -15,4 +15,5 @@ cypress/screenshots
 /coverage/
 .cache
 *.log
-*.ignore
+.env
+.temp/
