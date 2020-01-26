@@ -31,7 +31,8 @@ export default class ImplicitAuthenticator {
       document.location.protocol !== 'https:' &&
       // TODO: Is insecure localhost a bad idea as well? I don't think it is, since you are not actually
       //       sending the token over the internet in this case, assuming the auth URL is secure.
-      (document.location.hostname !== 'localhost' && document.location.hostname !== '127.0.0.1')
+      document.location.hostname !== 'localhost' &&
+      document.location.hostname !== '127.0.0.1'
     ) {
       return cb(new Error('Cannot authenticate over insecure protocol!'));
     }
@@ -41,9 +42,13 @@ export default class ImplicitAuthenticator {
     authURL.searchParams.set('redirect_uri', document.location.origin + document.location.pathname);
     authURL.searchParams.set('response_type', this.responseType);
     authURL.searchParams.set('scope', options.scope);
+    
     // Obsolete Azure documentation claims resource is optional...
-    options.resource && authURL.searchParams.set('resource', options.resource);
-    authURL.searchParams.set('state', createNonce());
+    // options.resource && authURL.searchParams.set('resource', options.resource);
+    // authURL.searchParams.set('state', createNonce());
+
+    const state = JSON.stringify({ auth_type: 'implicit', nonce: createNonce() });
+    authURL.searchParams.set('state', state);
 
     document.location.assign(authURL.href);
   }
@@ -61,7 +66,8 @@ export default class ImplicitAuthenticator {
 
     const params = Map(hashParams.entries());
 
-    const validNonce = validateNonce(params.get('state'));
+    const { nonce } = JSON.parse(params.get('state'));
+    const validNonce = validateNonce(nonce);
     if (!validNonce) {
       return cb(new Error('Invalid nonce'));
     }

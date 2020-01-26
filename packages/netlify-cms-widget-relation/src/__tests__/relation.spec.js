@@ -1,9 +1,7 @@
 import React from 'react';
 import { fromJS, Map } from 'immutable';
 import { last } from 'lodash';
-import { render, fireEvent, wait } from 'react-testing-library';
-import 'react-testing-library/cleanup-after-each';
-import 'jest-dom/extend-expect';
+import { render, fireEvent, wait } from '@testing-library/react';
 import { NetlifyCmsWidgetRelation } from '../';
 
 const RelationControl = NetlifyCmsWidgetRelation.controlComponent;
@@ -16,6 +14,31 @@ const fieldConfig = {
   valueField: 'title',
 };
 
+const customizedOptionsLengthConfig = {
+  name: 'post',
+  collection: 'posts',
+  displayFields: ['title', 'slug'],
+  searchFields: ['title', 'body'],
+  valueField: 'title',
+  optionsLength: 10,
+};
+
+const deeplyNestedFieldConfig = {
+  name: 'post',
+  collection: 'posts',
+  displayFields: ['title', 'slug', 'deeply.nested.post.field'],
+  searchFields: ['deeply.nested.post.field'],
+  valueField: 'title',
+};
+
+const nestedFieldConfig = {
+  name: 'post',
+  collection: 'posts',
+  displayFields: ['title', 'slug', 'nested.field_1'],
+  searchFields: ['nested.field_1', 'nested.field_2'],
+  valueField: 'title',
+};
+
 const generateHits = length => {
   const hits = Array.from({ length }, (val, idx) => {
     const title = `Post # ${idx + 1}`;
@@ -25,6 +48,31 @@ const generateHits = length => {
 
   return [
     ...hits,
+    {
+      collection: 'posts',
+      data: {
+        title: 'Deeply nested post',
+        slug: 'post-deeply-nested',
+        deeply: {
+          nested: {
+            post: {
+              field: 'Deeply nested field',
+            },
+          },
+        },
+      },
+    },
+    {
+      collection: 'posts',
+      data: {
+        title: 'Nested post',
+        slug: 'post-nested',
+        nested: {
+          field_1: 'Nested field 1',
+          field_2: 'Nested field 2',
+        },
+      },
+    },
     {
       collection: 'posts',
       data: { title: 'YAML post', slug: 'post-yaml', body: 'Body yaml' },
@@ -51,6 +99,14 @@ class RelationController extends React.Component {
     const queryHits = generateHits(25);
     if (last(args) === 'YAML') {
       return Promise.resolve({ payload: { response: { hits: [last(queryHits)] } } });
+    } else if (last(args) === 'Nested') {
+      return Promise.resolve({
+        payload: { response: { hits: [queryHits[queryHits.length - 2]] } },
+      });
+    } else if (last(args) === 'Deeply nested') {
+      return Promise.resolve({
+        payload: { response: { hits: [queryHits[queryHits.length - 3]] } },
+      });
     }
     return Promise.resolve({ payload: { response: { hits: queryHits } } });
   });
@@ -114,6 +170,16 @@ describe('Relation widget', () => {
     });
   });
 
+  it('should list the first 10 option hits on initial load', async () => {
+    const field = fromJS(customizedOptionsLengthConfig);
+    const { getAllByText, input } = setup({ field });
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+
+    await wait(() => {
+      expect(getAllByText(/^Post # (\d{1,2}) post-number-\1$/)).toHaveLength(10);
+    });
+  });
+
   it('should update option list based on search term', async () => {
     const field = fromJS(fieldConfig);
     const { getAllByText, input } = setup({ field });
@@ -156,6 +222,28 @@ describe('Relation widget', () => {
       expect(getByText(label)).toBeInTheDocument();
       expect(onChangeSpy).toHaveBeenCalledTimes(1);
       expect(onChangeSpy).toHaveBeenCalledWith(value, metadata);
+    });
+  });
+
+  it('should update option list based on nested search term', async () => {
+    const field = fromJS(nestedFieldConfig);
+    const { getAllByText, input } = setup({ field });
+    fireEvent.change(input, { target: { value: 'Nested' } });
+
+    await wait(() => {
+      expect(getAllByText('Nested post post-nested Nested field 1')).toHaveLength(1);
+    });
+  });
+
+  it('should update option list based on deeply nested search term', async () => {
+    const field = fromJS(deeplyNestedFieldConfig);
+    const { getAllByText, input } = setup({ field });
+    fireEvent.change(input, { target: { value: 'Deeply nested' } });
+
+    await wait(() => {
+      expect(
+        getAllByText('Deeply nested post post-deeply-nested Deeply nested field'),
+      ).toHaveLength(1);
     });
   });
 

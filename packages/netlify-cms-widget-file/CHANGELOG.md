@@ -3,6 +3,55 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.5.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/compare/netlify-cms-widget-file@2.5.1...netlify-cms-widget-file@2.5.2) (2020-01-26)
+
+
+### Bug Fixes
+
+* **media-library:** pass correct value to Asset component ([#3140](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/issues/3140)) ([b1026c9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/commit/b1026c980c70f0b45b47cbe555f4984aa9eea310))
+
+
+
+
+
+## [2.5.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/compare/netlify-cms-widget-file@2.5.0...netlify-cms-widget-file@2.5.1) (2020-01-23)
+
+
+### Bug Fixes
+
+* **widget-image:** hide image overflow in widget control ([#3131](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/issues/3131)) ([db2cbb6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/commit/db2cbb6f5d4136cc7fadba1c2d8977b0fd813c9b))
+
+
+
+
+
+# [2.5.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/compare/netlify-cms-widget-file@2.5.0-beta.0...netlify-cms-widget-file@2.5.0) (2020-01-07)
+
+**Note:** Version bump only for package netlify-cms-widget-file
+
+
+
+
+
+# [2.5.0-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/compare/netlify-cms-widget-file@2.4.3...netlify-cms-widget-file@2.5.0-beta.0) (2019-12-18)
+
+
+### Features
+
+* bundle assets with content ([#2958](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/issues/2958)) ([2b41d8a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/commit/2b41d8a838a9c8a6b21cde2ddd16b9288334e298))
+
+
+
+
+
+## [2.4.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/compare/netlify-cms-widget-file@2.4.2...netlify-cms-widget-file@2.4.3) (2019-07-24)
+
+**Note:** Version bump only for package netlify-cms-widget-file
+
+
+
+
+
 ## [2.4.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-file/compare/netlify-cms-widget-file@2.4.2-beta.0...netlify-cms-widget-file@2.4.2) (2019-04-10)
 
 **Note:** Version bump only for package netlify-cms-widget-file

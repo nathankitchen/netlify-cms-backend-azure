@@ -1,8 +1,13 @@
 # Netlify CMS
-[![Gitter Chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/netlify/netlifycms)
 
 A CMS for static site generators. Give users a simple way to edit
 and add content to any site built with a static site generator.
+
+## Community Chat
+
+<a href="https://netlifycms.org/chat">
+  <img alt="Join us on Slack" src="https://raw.githubusercontent.com/netlify/netlify-cms/master/website/static/img/slack.png" width="165"/>
+</a>
 
 ## How It Works
 
@@ -22,13 +27,9 @@ Read more about Netlify CMS [Core Concepts](https://www.netlifycms.org/docs/intr
 
 The Netlify CMS can be used in two different ways.
 
-* A Quick and easy install, that requires you to create a single HTML file and a configuration file. All the CMS Javascript and CSS are loaded from a CDN.
+* A Quick and easy install, that requires you to create a single HTML file and a configuration file. All the CMS JavaScript and CSS are loaded from a CDN.
   To learn more about this installation method, refer to the [Quick Start Guide](https://www.netlifycms.org/docs/quick-start/)
 * A complete, more complex install, that gives you more flexibility but requires that you use a static site builder with a build system that supports npm packages.
-
-# Community
-
-Netlify CMS has a [Gitter community](https://gitter.im/netlify/netlifycms) where members of the community hang out and share things about the project, as well as give and receive support.
 
 # Contributing
 
@@ -55,5 +56,9 @@ These services support Netlify CMS development by providing free infrastructure.
   <img src="https://spacergif.org/spacer.gif" width="20"/>
   <a href="https://www.browserstack.com">
     <img src="https://raw.githubusercontent.com/netlify/netlify-cms/master/img/browserstack.png" height="38" alt="browserstack" />
+  </a>
+  <img src="https://spacergif.org/spacer.gif" width="20"/>
+  <a href="https://www.cypress.io">
+    <img src="https://raw.githubusercontent.com/netlify/netlify-cms/master/img/cypressio.png" height="38" alt="Cypress.io" />
   </a>
 </p>

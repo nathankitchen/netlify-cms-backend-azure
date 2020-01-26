@@ -13,7 +13,7 @@ const styleStrings = {
     border-top-right-radius: 0;
   `,
   objectWidgetTopBarContainer: `
-    padding: ${lengths.objectWidgetTopBarContainerPadding}
+    padding: ${lengths.objectWidgetTopBarContainerPadding};
   `,
 };
 

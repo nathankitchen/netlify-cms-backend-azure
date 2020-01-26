@@ -1,8 +1,7 @@
-/** @jsx jsx */
 import PropTypes from 'prop-types';
 import React from 'react';
 import ImmutablePropTypes from 'react-immutable-proptypes';
-import { jsx, css } from '@emotion/core';
+import { css } from '@emotion/core';
 import styled from '@emotion/styled';
 import moment from 'moment';
 import { translate } from 'react-polyglot';
@@ -15,6 +14,12 @@ const WorkflowListContainer = styled.div`
   min-height: 60%;
   display: grid;
   grid-template-columns: 33.3% 33.3% 33.3%;
+`;
+
+const WorkflowListContainerOpenAuthoring = styled.div`
+  min-height: 60%;
+  display: grid;
+  grid-template-columns: 50% 50% 0%;
 `;
 
 const styles = {
@@ -57,6 +62,16 @@ const styles = {
   `,
   columnHovered: css`
     border-color: ${colors.active};
+  `,
+  hiddenColumn: css`
+    display: none;
+  `,
+  hiddenRightBorder: css`
+    &:not(:first-child):not(:last-child) {
+      &:after {
+        display: none;
+      }
+    }
   `,
 };
 
@@ -118,6 +133,7 @@ class WorkflowList extends React.Component {
     handlePublish: PropTypes.func.isRequired,
     handleDelete: PropTypes.func.isRequired,
     t: PropTypes.func.isRequired,
+    isOpenAuthoring: PropTypes.bool,
   };
 
   handleChangeStatus = (newStatus, dragProps) => {
@@ -145,6 +161,7 @@ class WorkflowList extends React.Component {
 
   // eslint-disable-next-line react/display-name
   renderColumns = (entries, column) => {
+    const { isOpenAuthoring } = this.props;
     if (!entries) return null;
 
     if (!column) {
@@ -162,6 +179,8 @@ class WorkflowList extends React.Component {
                     styles.column,
                     styles.columnPosition(idx),
                     isHovered && styles.columnHovered,
+                    isOpenAuthoring && currColumn === 'pending_publish' && styles.hiddenColumn,
+                    isOpenAuthoring && currColumn === 'pending_review' && styles.hiddenRightBorder,
                   ]}
                 >
                   <ColumnHeader name={currColumn}>
@@ -184,11 +203,8 @@ class WorkflowList extends React.Component {
       <div>
         {entries.map(entry => {
           const timestamp = moment(entry.getIn(['metaData', 'timeStamp'])).format('MMMM D');
-          const editLink = `collections/${entry.getIn([
-            'metaData',
-            'collection',
-          ])}/entries/${entry.get('slug')}`;
           const slug = entry.get('slug');
+          const editLink = `collections/${entry.getIn(['metaData', 'collection'])}/entries/${slug}`;
           const ownStatus = entry.getIn(['metaData', 'status']);
           const collection = entry.getIn(['metaData', 'collection']);
           const isModification = entry.get('isModification');
@@ -206,7 +222,7 @@ class WorkflowList extends React.Component {
                   <div>
                     <WorkflowCard
                       collectionName={collection}
-                      title={entry.getIn(['data', 'title'])}
+                      title={entry.get('label') || entry.getIn(['data', 'title'])}
                       authorLastChange={entry.getIn(['metaData', 'user'])}
                       body={entry.getIn(['data', 'body'])}
                       isModification={isModification}
@@ -228,7 +244,10 @@ class WorkflowList extends React.Component {
 
   render() {
     const columns = this.renderColumns(this.props.entries);
-    return <WorkflowListContainer>{columns}</WorkflowListContainer>;
+    const ListContainer = this.props.isOpenAuthoring
+      ? WorkflowListContainerOpenAuthoring
+      : WorkflowListContainer;
+    return <ListContainer>{columns}</ListContainer>;
   }
 }
 

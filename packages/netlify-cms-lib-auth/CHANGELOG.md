@@ -3,6 +3,57 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.7](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-lib-auth/compare/netlify-cms-lib-auth@2.2.6...netlify-cms-lib-auth@2.2.7) (2020-01-14)
+
+**Note:** Version bump only for package netlify-cms-lib-auth
+
+
+
+
+
+## [2.2.6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-lib-auth/compare/netlify-cms-lib-auth@2.2.6-beta.0...netlify-cms-lib-auth@2.2.6) (2019-12-18)
+
+**Note:** Version bump only for package netlify-cms-lib-auth
+
+
+
+
+
+## [2.2.6-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-lib-auth/compare/netlify-cms-lib-auth@2.2.5...netlify-cms-lib-auth@2.2.6-beta.0) (2019-12-02)
+
+
+### Bug Fixes
+
+* pass auth type in authURL to be used in identity widget ([#2920](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-lib-auth/issues/2920)) ([87b4d0f](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-lib-auth/commit/87b4d0f7657df83ba25a9d4ab23b878dc3324b86))
+
+
+
+
+
+## [2.2.5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-lib-auth/compare/netlify-cms-lib-auth@2.2.4...netlify-cms-lib-auth@2.2.5) (2019-11-18)
+
+**Note:** Version bump only for package netlify-cms-lib-auth
+
+
+
+
+
+## [2.2.4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-lib-auth/compare/netlify-cms-lib-auth@2.2.3...netlify-cms-lib-auth@2.2.4) (2019-07-24)
+
+**Note:** Version bump only for package netlify-cms-lib-auth
+
+
+
+
+
+## [2.2.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-lib-auth/compare/netlify-cms-lib-auth@2.2.2...netlify-cms-lib-auth@2.2.3) (2019-06-26)
+
+**Note:** Version bump only for package netlify-cms-lib-auth
+
+
+
+
+
 ## [2.2.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-lib-auth/compare/netlify-cms-lib-auth@2.2.2-beta.0...netlify-cms-lib-auth@2.2.2) (2019-04-10)
 
 **Note:** Version bump only for package netlify-cms-lib-auth

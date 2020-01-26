@@ -46,7 +46,7 @@ using the image or file widgets.
 ## Configuring the Uploadcare Widget
 
 The Uploadcare widget can be configured with settings that are outlined [in their
-docs](https://uploadcare.com/docs/uploads/widget/config/). The widget itself accepts configration
+docs](https://uploadcare.com/docs/file_uploads/widget/options/). The widget itself accepts configuration
 through global variables and data properties on HTML elements, but with Netlify CMS you can pass
 configuration options directly through your `config.yml`.
 
@@ -77,4 +77,26 @@ For example:
       config:
         multiple: true
         previewStep: false
+```
+
+## Integration settings
+
+There are several settings that control the behavior of integration with the widget.
+
+* `autoFilename` (`boolean`) - specify whether to add a filename to the end of the url.
+  Example: `http://ucarecdn.com/:uuid/filename.png`
+* `defaultOperations` (`string`) - specify a string added at the end of the url.
+  This could be useful to apply a set of CDN operations to each image,
+  for example resizing or compression. All the possible operations are listed
+  [here](https://uploadcare.com/docs/api_reference/cdn/).
+
+
+```yaml
+media_library:
+  name: uploadcare
+  config:
+    publicKey: demopublickey
+  settings:
+    autoFilename: true
+    defaultOperations: '/resize/800x600/'
 ```

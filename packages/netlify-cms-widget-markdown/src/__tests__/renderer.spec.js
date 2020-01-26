@@ -1,5 +1,5 @@
 import React from 'react';
-import renderer from 'react-test-renderer';
+import { create, act } from 'react-test-renderer';
 import { padStart } from 'lodash';
 import MarkdownPreview from '../MarkdownPreview';
 import { markdownToHtml } from '../serializers';
@@ -7,7 +7,7 @@ import { markdownToHtml } from '../serializers';
 describe('Markdown Preview renderer', () => {
   describe('Markdown rendering', () => {
     describe('General', () => {
-      it('should render markdown', () => {
+      it('should render markdown', async () => {
         const value = `
 # H1
 
@@ -36,25 +36,39 @@ Text with **bold** & _em_ elements
 
 ![](https://pbs.twimg.com/profile_images/678903331176214528/TQTdqGwD.jpg)
 `;
-        expect(
-          renderer.create(<MarkdownPreview value={markdownToHtml(value)} />).toJSON(),
-        ).toMatchSnapshot();
+        const html = await markdownToHtml(value);
+
+        let root;
+        await act(async () => {
+          root = create(
+            <MarkdownPreview value={html} getAsset={jest.fn()} resolveWidget={jest.fn()} />,
+          );
+        });
+
+        expect(root.toJSON()).toMatchSnapshot();
       });
     });
 
     describe('Headings', () => {
       for (const heading of [...Array(6).keys()]) {
-        it(`should render Heading ${heading + 1}`, () => {
+        it(`should render Heading ${heading + 1}`, async () => {
           const value = padStart(' Title', heading + 7, '#');
-          expect(
-            renderer.create(<MarkdownPreview value={markdownToHtml(value)} />).toJSON(),
-          ).toMatchSnapshot();
+          const html = await markdownToHtml(value);
+
+          let root;
+          await act(async () => {
+            root = create(
+              <MarkdownPreview value={html} getAsset={jest.fn()} resolveWidget={jest.fn()} />,
+            );
+          });
+
+          expect(root.toJSON()).toMatchSnapshot();
         });
       }
     });
 
     describe('Lists', () => {
-      it('should render lists', () => {
+      it('should render lists', async () => {
         const value = `
 1. ol item 1
 1. ol item 2
@@ -66,45 +80,98 @@ Text with **bold** & _em_ elements
         1. Sub-Sublist 3
 1. ol item 3
 `;
-        expect(
-          renderer.create(<MarkdownPreview value={markdownToHtml(value)} />).toJSON(),
-        ).toMatchSnapshot();
+        const html = await markdownToHtml(value);
+
+        let root;
+        await act(async () => {
+          root = create(
+            <MarkdownPreview value={html} getAsset={jest.fn()} resolveWidget={jest.fn()} />,
+          );
+        });
+
+        expect(root.toJSON()).toMatchInlineSnapshot(`
+.emotion-0 {
+  margin: 15px 2px;
+}
+
+<div
+  className="emotion-0 emotion-1"
+  dangerouslySetInnerHTML={
+    Object {
+      "__html": "<ol>
+<li>ol item 1</li>
+<li>ol item 2<ul>
+<li>Sublist 1</li>
+<li>Sublist 2</li>
+<li>Sublist 3<ol>
+<li>Sub-Sublist 1</li>
+<li>Sub-Sublist 2</li>
+<li>Sub-Sublist 3</li>
+</ol></li>
+</ul></li>
+<li>ol item 3</li>
+</ol>",
+    }
+  }
+/>
+`);
       });
     });
 
     describe('Links', () => {
-      it('should render links', () => {
+      it('should render links', async () => {
         const value = `
-I get 10 times more traffic from [Google] [1] than from [Yahoo] [2] or [MSN] [3].
+I get 10 times more traffic from [Google] than from [Yahoo] or [MSN].
 
-  [1]: http://google.com/        "Google"
-  [2]: http://search.yahoo.com/  "Yahoo Search"
-  [3]: http://search.msn.com/    "MSN Search"
+  [Google]: http://google.com/        "Google"
+  [Yahoo]: http://search.yahoo.com/  "Yahoo Search"
+  [MSN]: http://search.msn.com/    "MSN Search"
 `;
-        expect(
-          renderer.create(<MarkdownPreview value={markdownToHtml(value)} />).toJSON(),
-        ).toMatchSnapshot();
+        const html = await markdownToHtml(value);
+
+        let root;
+        await act(async () => {
+          root = create(
+            <MarkdownPreview value={html} getAsset={jest.fn()} resolveWidget={jest.fn()} />,
+          );
+        });
+
+        expect(root.toJSON()).toMatchSnapshot();
       });
     });
 
     describe('Code', () => {
-      it('should render code', () => {
+      it('should render code', async () => {
         const value = 'Use the `printf()` function.';
-        expect(
-          renderer.create(<MarkdownPreview value={markdownToHtml(value)} />).toJSON(),
-        ).toMatchSnapshot();
+        const html = await markdownToHtml(value);
+
+        let root;
+        await act(async () => {
+          root = create(
+            <MarkdownPreview value={html} getAsset={jest.fn()} resolveWidget={jest.fn()} />,
+          );
+        });
+
+        expect(root.toJSON()).toMatchSnapshot();
       });
 
-      it('should render code 2', () => {
+      it('should render code 2', async () => {
         const value = '``There is a literal backtick (`) here.``';
-        expect(
-          renderer.create(<MarkdownPreview value={markdownToHtml(value)} />).toJSON(),
-        ).toMatchSnapshot();
+        const html = await markdownToHtml(value);
+
+        let root;
+        await act(async () => {
+          root = create(
+            <MarkdownPreview value={html} getAsset={jest.fn()} resolveWidget={jest.fn()} />,
+          );
+        });
+
+        expect(root.toJSON()).toMatchSnapshot();
       });
     });
 
     describe('HTML', () => {
-      it('should render HTML as is when using Markdown', () => {
+      it('should render HTML as is when using Markdown', async () => {
         const value = `
 # Title
 
@@ -120,19 +187,33 @@ I get 10 times more traffic from [Google] [1] than from [Yahoo] [2] or [MSN] [3]
 
 <h1 style="display: block; border: 10px solid #f00; width: 100%">Test</h1>
 `;
-        expect(
-          renderer.create(<MarkdownPreview value={markdownToHtml(value)} />).toJSON(),
-        ).toMatchSnapshot();
+        const html = await markdownToHtml(value);
+
+        let root;
+        await act(async () => {
+          root = create(
+            <MarkdownPreview value={html} getAsset={jest.fn()} resolveWidget={jest.fn()} />,
+          );
+        });
+
+        expect(root.toJSON()).toMatchSnapshot();
       });
     });
   });
 
   describe('HTML rendering', () => {
-    it('should render HTML', () => {
+    it('should render HTML', async () => {
       const value = '<p>Paragraph with <em>inline</em> element</p>';
-      expect(
-        renderer.create(<MarkdownPreview value={markdownToHtml(value)} />).toJSON(),
-      ).toMatchSnapshot();
+      const html = await markdownToHtml(value);
+
+      let root;
+      await act(async () => {
+        root = create(
+          <MarkdownPreview value={html} getAsset={jest.fn()} resolveWidget={jest.fn()} />,
+        );
+      });
+
+      expect(root.toJSON()).toMatchSnapshot();
     });
   });
 });

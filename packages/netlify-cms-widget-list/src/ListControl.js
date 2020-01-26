@@ -1,11 +1,11 @@
-/** @jsx jsx */
 import React from 'react';
 import PropTypes from 'prop-types';
 import ImmutablePropTypes from 'react-immutable-proptypes';
 import styled from '@emotion/styled';
-import { jsx, css, ClassNames } from '@emotion/core';
-import { List, Map } from 'immutable';
-import { partial } from 'lodash';
+import { css, ClassNames } from '@emotion/core';
+import { List, Map, fromJS } from 'immutable';
+import { partial, isEmpty } from 'lodash';
+import uuid from 'uuid/v4';
 import { SortableContainer, SortableElement, SortableHandle } from 'react-sortable-hoc';
 import NetlifyCmsWidgetObject from 'netlify-cms-widget-object';
 import {
@@ -79,6 +79,7 @@ export default class ListControl extends React.Component {
     onChange: PropTypes.func.isRequired,
     onChangeObject: PropTypes.func.isRequired,
     onValidateObject: PropTypes.func.isRequired,
+    validate: PropTypes.func.isRequired,
     value: ImmutablePropTypes.list,
     field: PropTypes.object,
     forID: PropTypes.string,
@@ -110,6 +111,7 @@ export default class ListControl extends React.Component {
     this.state = {
       itemsCollapsed: List(itemsCollapsed),
       value: valueToString(value),
+      keys: List(),
     };
   }
 
@@ -147,7 +149,7 @@ export default class ListControl extends React.Component {
 
     const parsedValue = valueToString(listValue);
     this.setState({ value: parsedValue });
-    onChange(listValue.map(val => val.trim()));
+    onChange(List(listValue.map(val => val.trim())));
   };
 
   handleFocus = () => {
@@ -165,17 +167,62 @@ export default class ListControl extends React.Component {
 
   handleAdd = e => {
     e.preventDefault();
-    const { value, onChange } = this.props;
-    const parsedValue = this.getValueType() === valueTypes.SINGLE ? null : Map();
+    const { value, onChange, field } = this.props;
+    const parsedValue =
+      this.getValueType() === valueTypes.SINGLE
+        ? this.singleDefault()
+        : fromJS(this.multipleDefault(field.get('fields')));
     this.setState({ itemsCollapsed: this.state.itemsCollapsed.push(false) });
     onChange((value || List()).push(parsedValue));
   };
 
+  singleDefault = () => {
+    return this.props.field.getIn(['field', 'default'], null);
+  };
+
+  multipleDefault = fields => {
+    return this.getFieldsDefault(fields);
+  };
+
   handleAddType = (type, typeKey) => {
     const { value, onChange } = this.props;
-    let parsedValue = Map().set(typeKey, type);
+    let parsedValue = fromJS(this.mixedDefault(typeKey, type));
     this.setState({ itemsCollapsed: this.state.itemsCollapsed.push(false) });
     onChange((value || List()).push(parsedValue));
+  };
+
+  mixedDefault = (typeKey, type) => {
+    const selectedType = this.props.field.get(TYPES_KEY).find(f => f.get('name') === type);
+    const fields = selectedType.get('fields') || [selectedType.get('field')];
+
+    return this.getFieldsDefault(fields, { [typeKey]: type });
+  };
+
+  getFieldsDefault = (fields, initialValue = {}) => {
+    return fields.reduce((acc, item) => {
+      const subfields = item.get('field') || item.get('fields');
+      const object = item.get('widget') == 'object';
+      const name = item.get('name');
+      const defaultValue = item.get('default', null);
+
+      if (List.isList(subfields) && object) {
+        const subDefaultValue = this.getFieldsDefault(subfields);
+        !isEmpty(subDefaultValue) && (acc[name] = subDefaultValue);
+        return acc;
+      }
+
+      if (Map.isMap(subfields) && object) {
+        const subDefaultValue = this.getFieldsDefault([subfields]);
+        !isEmpty(subDefaultValue) && (acc[name] = subDefaultValue);
+        return acc;
+      }
+
+      if (defaultValue !== null) {
+        acc[name] = defaultValue;
+      }
+
+      return acc;
+    }, initialValue);
   };
 
   processControlRef = ref => {
@@ -184,9 +231,13 @@ export default class ListControl extends React.Component {
   };
 
   validate = () => {
-    this.validations.forEach(validateListItem => {
-      validateListItem();
-    });
+    if (this.getValueType()) {
+      this.validations.forEach(validateListItem => {
+        validateListItem();
+      });
+    } else {
+      this.props.validate();
+    }
   };
 
   /**
@@ -200,10 +251,13 @@ export default class ListControl extends React.Component {
     return (fieldName, newValue, newMetadata) => {
       const { value, metadata, onChange, field } = this.props;
       const collectionName = field.get('name');
-      const newObjectValue =
-        this.getValueType() !== valueTypes.SINGLE
-          ? this.getObjectValue(index).set(fieldName, newValue)
-          : newValue;
+      const listFieldObjectWidget = field.getIn(['field', 'widget']) === 'object';
+      const withNameKey =
+        this.getValueType() !== valueTypes.SINGLE ||
+        (this.getValueType() === valueTypes.SINGLE && listFieldObjectWidget);
+      const newObjectValue = withNameKey
+        ? this.getObjectValue(index).set(fieldName, newValue)
+        : newValue;
       const parsedMetadata = {
         [collectionName]: Object.assign(metadata ? metadata.toJS() : {}, newMetadata || {}),
       };
@@ -266,7 +320,7 @@ export default class ListControl extends React.Component {
 
   onSortEnd = ({ oldIndex, newIndex }) => {
     const { value } = this.props;
-    const { itemsCollapsed } = this.state;
+    const { itemsCollapsed, keys } = this.state;
 
     // Update value
     const item = value.get(oldIndex);
@@ -276,7 +330,10 @@ export default class ListControl extends React.Component {
     // Update collapsing
     const collapsed = itemsCollapsed.get(oldIndex);
     const updatedItemsCollapsed = itemsCollapsed.delete(oldIndex).insert(newIndex, collapsed);
-    this.setState({ itemsCollapsed: updatedItemsCollapsed });
+
+    // Reset item to ensure updated state
+    const updatedKeys = keys.set(oldIndex, uuid()).set(newIndex, uuid());
+    this.setState({ itemsCollapsed: updatedItemsCollapsed, keys: updatedKeys });
   };
 
   // eslint-disable-next-line react/display-name
@@ -292,8 +349,9 @@ export default class ListControl extends React.Component {
       resolveWidget,
     } = this.props;
 
-    const { itemsCollapsed } = this.state;
+    const { itemsCollapsed, keys } = this.state;
     const collapsed = itemsCollapsed.get(index);
+    const key = keys.get(index) || `item-${index}`;
     let field = this.props.field;
 
     if (this.getValueType() === valueTypes.MIXED) {
@@ -307,7 +365,7 @@ export default class ListControl extends React.Component {
       <SortableListItem
         css={[styles.listControlItem, collapsed && styles.listControlItemCollapsed]}
         index={index}
-        key={`item-${index}`}
+        key={key}
       >
         <StyledListItemTopBar
           collapsed={collapsed}

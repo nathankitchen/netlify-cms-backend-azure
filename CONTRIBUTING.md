@@ -24,96 +24,101 @@ $ yarn bootstrap
 ### Run locally
 
 ```sh
-$ yarn start
+yarn start
 ```
 
 ## Available scripts
 
-### `bootstrap`
+### bootstrap
 
 Bootstraps the monorepo.
 
-#### Usage
-
 ```sh
-$ yarn bootstrap
+yarn bootstrap
 ```
 
-### `watch`
+### watch
 
 Watches all CMS packages and transpiles them on change.
 
-#### Usage
-
 ```sh
-$ yarn watch
+yarn watch
 ```
-
-### `start`
+### start
 
 Starts the development server. This task runs both the `bootstrap` and `watch` scripts.
 
-#### Usage
-
 ```sh
-$ yarn start
+yarn start
 ```
 
-### `clean`
+### clean
 
 Removes all of the CMS package `dist` directories.
-
-#### Usage
 
 ```sh
 yarn clean
 ```
 
-### `reset`
+### reset
 
 Runs the `clean` script and removes all the `node_modules` from the CMS packages.
-
-#### Usage
 
 ```sh
 yarn reset
 ```
 
-### `build`
+### build
 
 Runs the `clean` script and builds the CMS packages.
-
-#### Usage
 
 ```sh
 yarn build
 ```
 
-### `build-preview`
+### build-preview
 
 Runs the `build` and `build-preview` scripts in each package and serves the resulting build locally.
-
-#### Usage
 
 ```sh
 yarn build-preview
 ```
 
-### `test`
+### test
 
-Runs all the CMS package tests.
-
-#### Usage
+Runs linting and Jest tests.
 
 ```sh
 yarn test
 ```
 
-### `format`
+### test:all
+
+Runs linting, Jest, and Cypress tests.
+
+```sh
+yarn test:all
+```
+
+### test:e2e
+
+Runs Cypress e2e tests.
+
+```sh
+yarn test:e2e
+```
+
+### test:e2e:dev
+
+Runs Cypress e2e tests on watch mode with an open instance of Chrome.
+
+```sh
+yarn test:e2e:dev
+```
+
+### format
 
 Formats code and docs according to our style guidelines.
-
-#### Usage
 
 ```sh
 yarn format
@@ -123,7 +128,7 @@ yarn format
 
 We actively welcome your pull requests!
 
-If you need help with Git or our workflow, please ask on [Gitter.im](https://gitter.im/netlify/NetlifyCMS). We want your contributions even if you're just learning Git. Our maintainers are happy to help!
+If you need help with Git or our workflow, please ask in our [community chat](https://netlifycms.org/chat). We want your contributions even if you're just learning Git. Our maintainers are happy to help!
 
 Netlify CMS uses the [Forking Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/forking-workflow) + [Feature Branches](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow). Additionally, PR's should be [rebased](https://www.atlassian.com/git/tutorials/merging-vs-rebasing) on master when opened, and again before merging.
 

@@ -5,12 +5,9 @@ import Prism from 'prismjs';
 import { BlogPostTemplate } from '../templates/blog-post';
 import { DocsTemplate } from '../templates/doc-page';
 import WidgetDoc from '../components/widget-doc';
-import Release from '../components/release';
 import WhatsNew from '../components/whats-new';
 import Notification from '../components/notification';
-import '../css/imports/docs.css';
-import '../css/imports/whatsnew.css';
-import '../css/imports/header.css';
+import Community from '../components/community';
 
 const withHighlight = WrappedComponent =>
   class Highlight extends React.Component {
@@ -52,6 +49,11 @@ const BlogPostPreview = ({ entry, widgetFor }) => {
   );
 };
 
+const CommunityPreview = ({ entry }) => {
+  const { title, headline, subhead, sections } = entry.get('data').toJS();
+  return <Community title={title} headline={headline} subhead={subhead} sections={sections} />;
+};
+
 const DocsPreview = ({ entry, widgetFor }) => (
   <DocsTemplate title={entry.getIn(['data', 'title'])} body={widgetFor('body')} />
 );
@@ -61,16 +63,15 @@ const WidgetDocPreview = ({ entry, widgetFor }) => (
 );
 
 const ReleasePreview = ({ entry }) => (
-  <WhatsNew>
-    {entry.getIn(['data', 'updates']).map((release, idx) => (
-      <Release
-        key={idx}
-        version={release.get('version')}
-        date={dayjs(release.get('date')).format('MMMM D, YYYY')}
-        description={release.get('description')}
-      />
-    ))}
-  </WhatsNew>
+  <WhatsNew
+    updates={[
+      entry.getIn(['data', 'updates']).map(release => ({
+        version: release.get('version'),
+        date: dayjs(release.get('date')).format('MMMM D, YYYY'),
+        description: release.get('description'),
+      })),
+    ]}
+  />
 );
 
 const NotificationPreview = ({ entry }) =>
@@ -88,3 +89,4 @@ CMS.registerPreviewTemplate('docs', withHighlight(DocsPreview));
 CMS.registerPreviewTemplate('widget_docs', withHighlight(WidgetDocPreview));
 CMS.registerPreviewTemplate('releases', ReleasePreview);
 CMS.registerPreviewTemplate('notifications', NotificationPreview);
+CMS.registerPreviewTemplate('community', CommunityPreview);

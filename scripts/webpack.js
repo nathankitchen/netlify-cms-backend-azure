@@ -1,28 +1,32 @@
 const path = require('path');
 const webpack = require('webpack');
 const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin');
+const { flatMap } = require('lodash');
 const { toGlobalName, externals } = require('./externals');
 const pkg = require(path.join(process.cwd(), 'package.json'));
 
 const isProduction = process.env.NODE_ENV === 'production';
+const isTest = process.env.NODE_ENV === 'test';
+const moduleNameToPath = libName => `${path.resolve(__dirname, `../node_modules/${libName}`)}/`;
 
 const rules = () => ({
   js: () => ({
-    test: /\.js$/,
+    test: /\.(ts|js)x?$/,
     exclude: /node_modules/,
     use: {
       loader: 'babel-loader',
       options: {
         rootMode: 'upward',
-        // configFile: path.resolve(`${__dirname}/../babel.config.js`),
       },
     },
   }),
-  css: () => ({
-    test: /\.css$/,
-    include: [/(ol|redux-notifications|react-datetime)/],
-    use: ['to-string-loader', 'css-loader'],
-  }),
+  css: () => [
+    {
+      test: /\.css$/,
+      include: ['ol', 'redux-notifications', 'react-datetime', 'codemirror'].map(moduleNameToPath),
+      use: ['to-string-loader', 'css-loader'],
+    },
+  ],
   svg: () => ({
     test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
     exclude: [/node_modules/],
@@ -105,13 +109,16 @@ const umdExternals = Object.keys(pkg.peerDependencies || {}).reduce((previous, k
 const baseConfig = ({ target = isProduction ? 'umd' : 'umddir' } = {}) => ({
   context: process.cwd(),
   mode: isProduction ? 'production' : 'development',
-  entry: './src/index.js',
+  entry: './src',
   output: targetOutputs()[target],
   module: {
-    rules: Object.values(rules()).map(rule => rule()),
+    rules: flatMap(Object.values(rules()), rule => rule()),
+  },
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.json'],
   },
   plugins: Object.values(plugins()).map(plugin => plugin()),
-  devtool: 'source-map',
+  devtool: isTest ? '' : 'source-map',
   target: 'web',
 
   /**

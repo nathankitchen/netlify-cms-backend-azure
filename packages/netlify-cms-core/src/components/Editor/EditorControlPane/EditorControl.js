@@ -1,16 +1,15 @@
-/** @jsx jsx */
 import React from 'react';
 import PropTypes from 'prop-types';
 import ImmutablePropTypes from 'react-immutable-proptypes';
 import { translate } from 'react-polyglot';
-import { jsx, ClassNames, Global, css as coreCss } from '@emotion/core';
+import { ClassNames, Global, css as coreCss } from '@emotion/core';
 import styled from '@emotion/styled';
 import { partial, uniqueId } from 'lodash';
 import { connect } from 'react-redux';
-import { colors, colorsRaw, transitions, lengths, borders } from 'netlify-cms-ui-default';
+import { FieldLabel, colors, transitions, lengths, borders } from 'netlify-cms-ui-default';
 import { resolveWidget, getEditorComponents } from 'Lib/registry';
 import { clearFieldErrors, loadEntry } from 'Actions/entries';
-import { addAsset } from 'Actions/media';
+import { addAsset, getAsset } from 'Actions/media';
 import { query, clearSearch } from 'Actions/search';
 import {
   openMediaLibrary,
@@ -18,7 +17,6 @@ import {
   clearMediaControl,
   removeMediaControl,
 } from 'Actions/mediaLibrary';
-import { getAsset } from 'Reducers';
 import Widget from './Widget';
 
 /**
@@ -27,48 +25,6 @@ import Widget from './Widget';
  * this.
  */
 const styleStrings = {
-  label: `
-    color: ${colors.controlLabel};
-    background-color: ${colors.textFieldBorder};
-    display: inline-block;
-    font-size: 12px;
-    text-transform: uppercase;
-    font-weight: 600;
-    border: 0;
-    border-radius: 3px 3px 0 0;
-    padding: 3px 6px 2px;
-    margin: 0;
-    transition: all ${transitions.main};
-    position: relative;
-
-    /**
-     * Faux outside curve into top of input
-     */
-    &:before,
-    &:after {
-      content: '';
-      display: block;
-      position: absolute;
-      top: 0;
-      right: -4px;
-      height: 100%;
-      width: 4px;
-      background-color: inherit;
-    }
-
-    &:after {
-      border-bottom-left-radius: 3px;
-      background-color: #fff;
-    }
-  `,
-  labelActive: `
-    background-color: ${colors.active};
-    color: ${colors.textLight};
-  `,
-  labelError: `
-    background-color: ${colors.errorText};
-    color: ${colorsRaw.white};
-  `,
   widget: `
     display: block;
     width: 100%;
@@ -155,6 +111,8 @@ class EditorControl extends React.Component {
     clearFieldErrors: PropTypes.func.isRequired,
     loadEntry: PropTypes.func.isRequired,
     t: PropTypes.func.isRequired,
+    isEditorComponent: PropTypes.bool,
+    isNewEditorComponent: PropTypes.bool,
   };
 
   state = {
@@ -186,8 +144,13 @@ class EditorControl extends React.Component {
       clearSearch,
       clearFieldErrors,
       loadEntry,
+      className,
+      isSelected,
+      isEditorComponent,
+      isNewEditorComponent,
       t,
     } = this.props;
+
     const widgetName = field.get('widget');
     const widget = resolveWidget(widgetName);
     const fieldName = field.get('name');
@@ -199,11 +162,11 @@ class EditorControl extends React.Component {
     return (
       <ClassNames>
         {({ css, cx }) => (
-          <ControlContainer>
+          <ControlContainer className={className}>
             {widget.globalStyles && <Global styles={coreCss`${widget.globalStyles}`} />}
-            <ControlErrorsList>
-              {errors &&
-                errors.map(
+            {errors && (
+              <ControlErrorsList>
+                {errors.map(
                   error =>
                     error.message &&
                     typeof error.message === 'string' && (
@@ -212,25 +175,15 @@ class EditorControl extends React.Component {
                       </li>
                     ),
                 )}
-            </ControlErrorsList>
-            <label
-              className={cx(
-                css`
-                  ${styleStrings.label};
-                `,
-                this.state.styleActive &&
-                  css`
-                    ${styleStrings.labelActive};
-                  `,
-                !!errors &&
-                  css`
-                    ${styleStrings.labelError};
-                  `,
-              )}
+              </ControlErrorsList>
+            )}
+            <FieldLabel
+              isActive={isSelected || this.state.styleActive}
+              hasErrors={!!errors}
               htmlFor={this.uniqueFieldId}
             >
               {`${field.get('label', field.get('name'))}${isFieldOptional ? ' (optional)' : ''}`}
-            </label>
+            </FieldLabel>
             <Widget
               classNameWrapper={cx(
                 css`
@@ -239,7 +192,7 @@ class EditorControl extends React.Component {
                 {
                   [css`
                     ${styleStrings.widgetActive};
-                  `]: this.state.styleActive,
+                  `]: isSelected || this.state.styleActive,
                 },
                 {
                   [css`
@@ -273,10 +226,11 @@ class EditorControl extends React.Component {
               onRemoveInsertedMedia={removeInsertedMedia}
               onAddAsset={addAsset}
               getAsset={boundGetAsset}
-              hasActiveStyle={this.state.styleActive}
+              hasActiveStyle={isSelected || this.state.styleActive}
               setActiveStyle={() => this.setState({ styleActive: true })}
               setInactiveStyle={() => this.setState({ styleActive: false })}
               resolveWidget={resolveWidget}
+              widget={widget}
               getEditorComponents={getEditorComponents}
               ref={processControlRef && partial(processControlRef, field)}
               controlRef={controlRef}
@@ -289,10 +243,12 @@ class EditorControl extends React.Component {
               isFetching={isFetching}
               fieldsErrors={fieldsErrors}
               onValidateObject={onValidateObject}
+              isEditorComponent={isEditorComponent}
+              isNewEditorComponent={isNewEditorComponent}
               t={t}
             />
             {fieldHint && (
-              <ControlHint active={this.state.styleActive} error={!!errors}>
+              <ControlHint active={isSelected || this.state.styleActive} error={!!errors}>
                 {fieldHint}
               </ControlHint>
             )}
@@ -303,12 +259,19 @@ class EditorControl extends React.Component {
   }
 }
 
-const mapStateToProps = state => ({
-  mediaPaths: state.mediaLibrary.get('controlMedia'),
-  boundGetAsset: getAsset.bind(null, state),
-  isFetching: state.search.get('isFetching'),
-  queryHits: state.search.get('queryHits'),
-});
+const mapStateToProps = state => {
+  const { collections, entryDraft } = state;
+  const entry = entryDraft.get('entry');
+  const collection = collections.get(entryDraft.getIn(['entry', 'collection']));
+
+  return {
+    mediaPaths: state.mediaLibrary.get('controlMedia'),
+    isFetching: state.search.get('isFetching'),
+    queryHits: state.search.get('queryHits'),
+    collection,
+    entry,
+  };
+};
 
 const mapDispatchToProps = {
   openMediaLibrary,
@@ -323,13 +286,24 @@ const mapDispatchToProps = {
   },
   clearSearch,
   clearFieldErrors,
+  boundGetAsset: (collection, entry) => (dispatch, getState) => path => {
+    return getAsset({ collection, entry, path })(dispatch, getState);
+  },
+};
+
+const mergeProps = (stateProps, dispatchProps, ownProps) => {
+  return {
+    ...stateProps,
+    ...dispatchProps,
+    ...ownProps,
+    boundGetAsset: dispatchProps.boundGetAsset(stateProps.collection, stateProps.entry),
+  };
 };
 
 const ConnectedEditorControl = connect(
   mapStateToProps,
   mapDispatchToProps,
-  null,
-  { withRef: true },
+  mergeProps,
 )(translate()(EditorControl));
 
 export default ConnectedEditorControl;

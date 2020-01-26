@@ -11,6 +11,7 @@ import {
   loadEntry,
   loadEntries,
   createDraftFromEntry,
+  createDraftDuplicateFromEntry,
   createEmptyDraft,
   discardDraft,
   changeDraftField,
@@ -25,11 +26,13 @@ import {
 import {
   updateUnpublishedEntryStatus,
   publishUnpublishedEntry,
+  unpublishPublishedEntry,
   deleteUnpublishedEntry,
 } from 'Actions/editorialWorkflow';
 import { loadDeployPreview } from 'Actions/deploys';
 import { deserializeValues } from 'Lib/serializeEntryValues';
-import { selectEntry, selectUnpublishedEntry, selectDeployPreview, getAsset } from 'Reducers';
+import { selectEntry, selectUnpublishedEntry, selectDeployPreview } from 'Reducers';
+import { getAsset } from 'Actions/media';
 import { selectFields } from 'Reducers/collections';
 import { status, EDITORIAL_WORKFLOW } from 'Constants/publishModes';
 import EditorInterface from './EditorInterface';
@@ -41,13 +44,14 @@ const navigateToNewEntry = collectionName => navigateCollection(`${collectionNam
 const navigateToEntry = (collectionName, slug) =>
   navigateCollection(`${collectionName}/entries/${slug}`);
 
-class Editor extends React.Component {
+export class Editor extends React.Component {
   static propTypes = {
     boundGetAsset: PropTypes.func.isRequired,
     changeDraftField: PropTypes.func.isRequired,
     changeDraftFieldValidation: PropTypes.func.isRequired,
     collection: ImmutablePropTypes.map.isRequired,
     createDraftFromEntry: PropTypes.func.isRequired,
+    createDraftDuplicateFromEntry: PropTypes.func.isRequired,
     createEmptyDraft: PropTypes.func.isRequired,
     discardDraft: PropTypes.func.isRequired,
     entry: ImmutablePropTypes.map,
@@ -61,6 +65,7 @@ class Editor extends React.Component {
     newEntry: PropTypes.bool.isRequired,
     displayUrl: PropTypes.string,
     hasWorkflow: PropTypes.bool,
+    useOpenAuthoring: PropTypes.bool,
     unpublishedEntry: PropTypes.bool,
     isModification: PropTypes.bool,
     collectionEntriesLoaded: PropTypes.bool,
@@ -78,6 +83,11 @@ class Editor extends React.Component {
     }),
     hasChanged: PropTypes.bool,
     t: PropTypes.func.isRequired,
+    retrieveLocalBackup: PropTypes.func.isRequired,
+    localBackup: ImmutablePropTypes.map,
+    loadLocalBackup: PropTypes.func,
+    persistLocalBackup: PropTypes.func.isRequired,
+    deleteLocalBackup: PropTypes.func,
   };
 
   componentDidMount() {
@@ -243,7 +253,7 @@ class Editor extends React.Component {
   }
 
   handlePersistEntry = async (opts = {}) => {
-    const { createNew = false } = opts;
+    const { createNew = false, duplicate = false } = opts;
     const {
       persistEntry,
       collection,
@@ -251,7 +261,8 @@ class Editor extends React.Component {
       hasWorkflow,
       loadEntry,
       slug,
-      createEmptyDraft,
+      createDraftDuplicateFromEntry,
+      entryDraft,
     } = this.props;
 
     await persistEntry(collection);
@@ -260,15 +271,23 @@ class Editor extends React.Component {
 
     if (createNew) {
       navigateToNewEntry(collection.get('name'));
-      createEmptyDraft(collection);
+      duplicate && createDraftDuplicateFromEntry(entryDraft.get('entry'));
     } else if (slug && hasWorkflow && !currentStatus) {
       loadEntry(collection, slug);
     }
   };
 
   handlePublishEntry = async (opts = {}) => {
-    const { createNew = false } = opts;
-    const { publishUnpublishedEntry, entryDraft, collection, slug, currentStatus, t } = this.props;
+    const { createNew = false, duplicate = false } = opts;
+    const {
+      publishUnpublishedEntry,
+      createDraftDuplicateFromEntry,
+      entryDraft,
+      collection,
+      slug,
+      currentStatus,
+      t,
+    } = this.props;
     if (currentStatus !== status.last()) {
       window.alert(t('editor.editor.onPublishingNotReady'));
       return;
@@ -286,6 +305,24 @@ class Editor extends React.Component {
     if (createNew) {
       navigateToNewEntry(collection.get('name'));
     }
+
+    duplicate && createDraftDuplicateFromEntry(entryDraft.get('entry'));
+  };
+
+  handleUnpublishEntry = async () => {
+    const { unpublishPublishedEntry, collection, slug, t } = this.props;
+    if (!window.confirm(t('editor.editor.onUnpublishing'))) return;
+
+    await unpublishPublishedEntry(collection, slug);
+
+    return navigateToCollection(collection.get('name'));
+  };
+
+  handleDuplicateEntry = () => {
+    const { createDraftDuplicateFromEntry, collection, entryDraft } = this.props;
+
+    navigateToNewEntry(collection.get('name'));
+    createDraftDuplicateFromEntry(entryDraft.get('entry'));
   };
 
   handleDeleteEntry = () => {
@@ -350,6 +387,7 @@ class Editor extends React.Component {
       hasChanged,
       displayUrl,
       hasWorkflow,
+      useOpenAuthoring,
       unpublishedEntry,
       newEntry,
       isModification,
@@ -357,6 +395,7 @@ class Editor extends React.Component {
       logoutUser,
       deployPreview,
       loadDeployPreview,
+      draftKey,
       slug,
       t,
     } = this.props;
@@ -379,6 +418,7 @@ class Editor extends React.Component {
 
     return (
       <EditorInterface
+        draftKey={draftKey}
         entry={entryDraft.get('entry')}
         getAsset={boundGetAsset}
         collection={collection}
@@ -392,11 +432,14 @@ class Editor extends React.Component {
         onDeleteUnpublishedChanges={this.handleDeleteUnpublishedChanges}
         onChangeStatus={this.handleChangeStatus}
         onPublish={this.handlePublishEntry}
+        unPublish={this.handleUnpublishEntry}
+        onDuplicate={this.handleDuplicateEntry}
         showDelete={this.props.showDelete}
         user={user}
         hasChanged={hasChanged}
         displayUrl={displayUrl}
         hasWorkflow={hasWorkflow}
+        useOpenAuthoring={useOpenAuthoring}
         hasUnpublishedChanges={unpublishedEntry}
         isNewEntry={newEntry}
         isModification={isModification}
@@ -410,30 +453,30 @@ class Editor extends React.Component {
 }
 
 function mapStateToProps(state, ownProps) {
-  const { collections, entryDraft, auth, config, entries } = state;
-  const slug = ownProps.match.params.slug;
+  const { collections, entryDraft, auth, config, entries, globalUI } = state;
+  const slug = ownProps.match.params[0];
   const collection = collections.get(ownProps.match.params.name);
   const collectionName = collection.get('name');
   const newEntry = ownProps.newRecord === true;
   const fields = selectFields(collection, slug);
   const entry = newEntry ? null : selectEntry(state, collectionName, slug);
-  const boundGetAsset = getAsset.bind(null, state);
   const user = auth && auth.get('user');
   const hasChanged = entryDraft.get('hasChanged');
   const displayUrl = config.get('display_url');
   const hasWorkflow = config.get('publish_mode') === EDITORIAL_WORKFLOW;
+  const useOpenAuthoring = globalUI.get('useOpenAuthoring', false);
   const isModification = entryDraft.getIn(['entry', 'isModification']);
   const collectionEntriesLoaded = !!entries.getIn(['pages', collectionName]);
   const unpublishedEntry = selectUnpublishedEntry(state, collectionName, slug);
   const currentStatus = unpublishedEntry && unpublishedEntry.getIn(['metaData', 'status']);
   const deployPreview = selectDeployPreview(state, collectionName, slug);
   const localBackup = entryDraft.get('localBackup');
+  const draftKey = entryDraft.get('key');
   return {
     collection,
     collections,
     newEntry,
     entryDraft,
-    boundGetAsset,
     fields,
     slug,
     entry,
@@ -441,34 +484,56 @@ function mapStateToProps(state, ownProps) {
     hasChanged,
     displayUrl,
     hasWorkflow,
+    useOpenAuthoring,
     isModification,
     collectionEntriesLoaded,
     currentStatus,
     deployPreview,
     localBackup,
+    draftKey,
   };
 }
 
+const mapDispatchToProps = {
+  changeDraftField,
+  changeDraftFieldValidation,
+  loadEntry,
+  loadEntries,
+  loadDeployPreview,
+  loadLocalBackup,
+  retrieveLocalBackup,
+  persistLocalBackup,
+  deleteLocalBackup,
+  createDraftFromEntry,
+  createDraftDuplicateFromEntry,
+  createEmptyDraft,
+  discardDraft,
+  persistEntry,
+  deleteEntry,
+  updateUnpublishedEntryStatus,
+  publishUnpublishedEntry,
+  unpublishPublishedEntry,
+  deleteUnpublishedEntry,
+  logoutUser,
+  boundGetAsset: (collection, entry) => (dispatch, getState) => path => {
+    return getAsset({ collection, entry, path })(dispatch, getState);
+  },
+};
+
+const mergeProps = (stateProps, dispatchProps, ownProps) => {
+  return {
+    ...stateProps,
+    ...dispatchProps,
+    ...ownProps,
+    boundGetAsset: dispatchProps.boundGetAsset(
+      stateProps.collection,
+      stateProps.entryDraft.get('entry'),
+    ),
+  };
+};
+
 export default connect(
   mapStateToProps,
-  {
-    changeDraftField,
-    changeDraftFieldValidation,
-    loadEntry,
-    loadEntries,
-    loadDeployPreview,
-    loadLocalBackup,
-    retrieveLocalBackup,
-    persistLocalBackup,
-    deleteLocalBackup,
-    createDraftFromEntry,
-    createEmptyDraft,
-    discardDraft,
-    persistEntry,
-    deleteEntry,
-    updateUnpublishedEntryStatus,
-    publishUnpublishedEntry,
-    deleteUnpublishedEntry,
-    logoutUser,
-  },
+  mapDispatchToProps,
+  mergeProps,
 )(withWorkflow(translate()(Editor)));

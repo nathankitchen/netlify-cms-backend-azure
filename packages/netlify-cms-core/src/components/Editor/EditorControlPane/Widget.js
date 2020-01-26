@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import ImmutablePropTypes from 'react-immutable-proptypes';
 import { Map, List } from 'immutable';
+import { oneLine } from 'common-tags';
 import ValidationErrorTypes from 'Constants/validationErrorTypes';
 
 const truthy = () => ({ error: false });
@@ -9,7 +10,7 @@ const truthy = () => ({ error: false });
 const isEmpty = value =>
   value === null ||
   value === undefined ||
-  (value.hasOwnProperty('length') && value.length === 0) ||
+  (Object.prototype.hasOwnProperty.call(value, 'length') && value.length === 0) ||
   (value.constructor === Object && Object.keys(value).length === 0) ||
   (List.isList(value) && value.size === 0);
 
@@ -43,6 +44,7 @@ export default class Widget extends Component {
     onRemoveInsertedMedia: PropTypes.func.isRequired,
     getAsset: PropTypes.func.isRequired,
     resolveWidget: PropTypes.func.isRequired,
+    widget: PropTypes.object.isRequired,
     getEditorComponents: PropTypes.func.isRequired,
     isFetching: PropTypes.bool,
     controlRef: PropTypes.func,
@@ -54,6 +56,9 @@ export default class Widget extends Component {
     uniqueFieldId: PropTypes.string.isRequired,
     loadEntry: PropTypes.func.isRequired,
     t: PropTypes.func.isRequired,
+    onValidateObject: PropTypes.func,
+    isEditorComponent: PropTypes.bool,
+    isNewEditorComponent: PropTypes.bool,
   };
 
   shouldComponentUpdate(nextProps) {
@@ -92,7 +97,11 @@ export default class Widget extends Component {
   };
 
   validate = (skipWrapped = false) => {
-    const { field, value } = this.props;
+    let value = this.props.value;
+    // Convert list input widget value to string for validation test
+    List.isList(value) && (value = value.join(','));
+
+    const field = this.props.field;
     const errors = [];
     const validations = [this.validatePresence, this.validatePattern];
     validations.forEach(func => {
@@ -149,11 +158,18 @@ export default class Widget extends Component {
 
   validateWrappedControl = field => {
     const t = this.props.t;
+    if (typeof this.wrappedControlValid !== 'function') {
+      throw new Error(oneLine`
+        this.wrappedControlValid is not a function. Are you sure widget
+        "${field.get('widget')}" is registered?
+      `);
+    }
+
     const response = this.wrappedControlValid();
     if (typeof response === 'boolean') {
       const isValid = response;
       return { error: !isValid };
-    } else if (response.hasOwnProperty('error')) {
+    } else if (Object.prototype.hasOwnProperty.call(response, 'error')) {
       return response;
     } else if (response instanceof Promise) {
       response.then(
@@ -226,6 +242,7 @@ export default class Widget extends Component {
       editorControl,
       uniqueFieldId,
       resolveWidget,
+      widget,
       getEditorComponents,
       query,
       queryHits,
@@ -235,6 +252,8 @@ export default class Widget extends Component {
       loadEntry,
       fieldsErrors,
       controlRef,
+      isEditorComponent,
+      isNewEditorComponent,
       t,
     } = this.props;
     return React.createElement(controlComponent, {
@@ -253,6 +272,7 @@ export default class Widget extends Component {
       getAsset,
       forID: uniqueFieldId,
       ref: this.processInnerControlRef,
+      validate: this.validate,
       classNameWrapper,
       classNameWidget,
       classNameWidgetActive,
@@ -263,6 +283,7 @@ export default class Widget extends Component {
       hasActiveStyle,
       editorControl,
       resolveWidget,
+      widget,
       getEditorComponents,
       query,
       queryHits,
@@ -270,6 +291,8 @@ export default class Widget extends Component {
       clearFieldErrors,
       isFetching,
       loadEntry,
+      isEditorComponent,
+      isNewEditorComponent,
       fieldsErrors,
       controlRef,
       t,

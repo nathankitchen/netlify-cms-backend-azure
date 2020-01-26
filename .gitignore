@@ -12,6 +12,10 @@ manifest.yml
 website/data/contributors.json
 cypress/videos
 cypress/screenshots
-/coverage/
+__diff_output__
+coverage/
 .cache
 *.log
+.env
+.temp/
+storybook-static/

@@ -58,6 +58,15 @@ const ToolbarToggleLabel = styled.span`
     `};
 `;
 
+const headingOptions = {
+  'heading-one': 'Heading 1',
+  'heading-two': 'Heading 2',
+  'heading-three': 'Heading 3',
+  'heading-four': 'Heading 4',
+  'heading-five': 'Heading 5',
+  'heading-six': 'Heading 6',
+};
+
 export default class Toolbar extends React.Component {
   static propTypes = {
     buttons: ImmutablePropTypes.list,
@@ -71,9 +80,9 @@ export default class Toolbar extends React.Component {
     onMarkClick: PropTypes.func,
     onBlockClick: PropTypes.func,
     onLinkClick: PropTypes.func,
-    selectionHasMark: PropTypes.func,
-    selectionHasBlock: PropTypes.func,
-    selectionHasLink: PropTypes.func,
+    hasMark: PropTypes.func,
+    hasInline: PropTypes.func,
+    hasBlock: PropTypes.func,
   };
 
   isHidden = button => {
@@ -81,19 +90,29 @@ export default class Toolbar extends React.Component {
     return List.isList(buttons) ? !buttons.includes(button) : false;
   };
 
+  handleBlockClick = (event, type) => {
+    if (event) {
+      event.preventDefault();
+    }
+    this.props.onBlockClick(type);
+  };
+
+  handleMarkClick = (event, type) => {
+    event.preventDefault();
+    this.props.onMarkClick(type);
+  };
+
   render() {
     const {
-      onMarkClick,
-      onBlockClick,
       onLinkClick,
-      selectionHasMark,
-      selectionHasBlock,
-      selectionHasLink,
       onToggleMode,
       rawMode,
       plugins,
       disabled,
       onSubmit,
+      hasMark = () => {},
+      hasInline = () => {},
+      hasBlock = () => {},
     } = this.props;
 
     return (
@@ -103,8 +122,8 @@ export default class Toolbar extends React.Component {
             type="bold"
             label="Bold"
             icon="bold"
-            onClick={onMarkClick}
-            isActive={selectionHasMark}
+            onClick={this.handleMarkClick}
+            isActive={hasMark('bold')}
             isHidden={this.isHidden('bold')}
             disabled={disabled}
           />
@@ -112,8 +131,8 @@ export default class Toolbar extends React.Component {
             type="italic"
             label="Italic"
             icon="italic"
-            onClick={onMarkClick}
-            isActive={selectionHasMark}
+            onClick={this.handleMarkClick}
+            isActive={hasMark('italic')}
             isHidden={this.isHidden('italic')}
             disabled={disabled}
           />
@@ -121,8 +140,8 @@ export default class Toolbar extends React.Component {
             type="code"
             label="Code"
             icon="code"
-            onClick={onMarkClick}
-            isActive={selectionHasMark}
+            onClick={this.handleMarkClick}
+            isActive={hasMark('code')}
             isHidden={this.isHidden('code')}
             disabled={disabled}
           />
@@ -131,52 +150,64 @@ export default class Toolbar extends React.Component {
             label="Link"
             icon="link"
             onClick={onLinkClick}
-            isActive={selectionHasLink}
+            isActive={hasInline('link')}
             isHidden={this.isHidden('link')}
             disabled={disabled}
           />
-          <ToolbarButton
-            type="heading-one"
-            label="Header 1"
-            icon="h1"
-            onClick={onBlockClick}
-            isActive={selectionHasBlock}
-            isHidden={this.isHidden('heading-one')}
-            disabled={disabled}
-          />
-          <ToolbarButton
-            type="heading-two"
-            label="Header 2"
-            icon="h2"
-            onClick={onBlockClick}
-            isActive={selectionHasBlock}
-            isHidden={this.isHidden('heading-two')}
-            disabled={disabled}
-          />
+          {/* Show dropdown if at least one heading is not hidden */}
+          {Object.keys(headingOptions).some(optionKey => {
+            return !this.isHidden(optionKey);
+          }) && (
+            <ToolbarDropdownWrapper>
+              <Dropdown
+                dropdownTopOverlap="36px"
+                renderButton={() => (
+                  <DropdownButton>
+                    <ToolbarButton
+                      type="headings"
+                      label="Headings"
+                      icon="hOptions"
+                      disabled={disabled}
+                      isActive={
+                        !disabled &&
+                        Object.keys(headingOptions).some(optionKey => {
+                          return hasBlock(optionKey);
+                        })
+                      }
+                    />
+                  </DropdownButton>
+                )}
+              >
+                {!disabled &&
+                  Object.keys(headingOptions).map(
+                    (optionKey, idx) =>
+                      !this.isHidden(optionKey) && (
+                        <DropdownItem
+                          key={idx}
+                          label={headingOptions[optionKey]}
+                          className={hasBlock(optionKey) ? 'active' : ''}
+                          onClick={() => this.handleBlockClick(null, optionKey)}
+                        />
+                      ),
+                  )}
+              </Dropdown>
+            </ToolbarDropdownWrapper>
+          )}
           <ToolbarButton
             type="quote"
             label="Quote"
             icon="quote"
-            onClick={onBlockClick}
-            isActive={selectionHasBlock}
+            onClick={this.handleBlockClick}
+            isActive={hasBlock('quote')}
             isHidden={this.isHidden('quote')}
-            disabled={disabled}
-          />
-          <ToolbarButton
-            type="code"
-            label="Code Block"
-            icon="code-block"
-            onClick={onBlockClick}
-            isActive={selectionHasBlock}
-            isHidden={this.isHidden('code-block')}
             disabled={disabled}
           />
           <ToolbarButton
             type="bulleted-list"
             label="Bulleted List"
             icon="list-bulleted"
-            onClick={onBlockClick}
-            isActive={selectionHasBlock}
+            onClick={this.handleBlockClick}
+            isActive={hasBlock('bulleted-list')}
             isHidden={this.isHidden('bulleted-list')}
             disabled={disabled}
           />
@@ -184,14 +215,15 @@ export default class Toolbar extends React.Component {
             type="numbered-list"
             label="Numbered List"
             icon="list-numbered"
-            onClick={onBlockClick}
-            isActive={selectionHasBlock}
+            onClick={this.handleBlockClick}
+            isActive={hasBlock('numbered-list')}
             isHidden={this.isHidden('numbered-list')}
             disabled={disabled}
           />
           <ToolbarDropdownWrapper>
             <Dropdown
               dropdownTopOverlap="36px"
+              dropdownWidth="110px"
               renderButton={() => (
                 <DropdownButton>
                   <ToolbarButton
@@ -207,11 +239,7 @@ export default class Toolbar extends React.Component {
                 plugins
                   .toList()
                   .map((plugin, idx) => (
-                    <DropdownItem
-                      key={idx}
-                      label={plugin.get('label')}
-                      onClick={() => onSubmit(plugin.get('id'))}
-                    />
+                    <DropdownItem key={idx} label={plugin.label} onClick={() => onSubmit(plugin)} />
                   ))}
             </Dropdown>
           </ToolbarDropdownWrapper>
