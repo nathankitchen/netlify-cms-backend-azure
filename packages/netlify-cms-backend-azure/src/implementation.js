@@ -1,7 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
 import semaphore from 'semaphore';
-import { stripIndent } from 'common-tags';
 import AuthenticationPage from './AuthenticationPage';
 import API from './API';
 

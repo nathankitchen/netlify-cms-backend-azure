@@ -1,6 +1,6 @@
 {
   "name": "netlify-cms-backend-azure",
-  "description": "Azure backend for Netlify CMS",
+  "description": "Azure DevOps backend for Netlify CMS",
   "version": "2.4.2",
   "license": "MIT",
   "repository": "https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-azure",
@@ -11,7 +11,8 @@
     "netlify",
     "netlify-cms",
     "backend",
-    "azure"
+    "azure",
+    "devops"
   ],
   "sideEffects": false,
   "scripts": {
