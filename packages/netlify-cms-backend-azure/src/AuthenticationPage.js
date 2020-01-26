@@ -24,11 +24,9 @@ export default class AzureAuthenticationPage extends React.Component {
 
   componentDidMount() {
     this.auth = new ImplicitAuthenticator({
-      base_url: this.props.config.getIn(['backend', 'base_url'], 'https://login.microsoftonline.com'),
-      auth_endpoint: this.props.config.getIn(
-        ['backend', 'tenant_id'],
-      ) + '/oauth2/authorize',
-      app_id: this.props.config.getIn(['backend', 'app_id'], ''),
+      base_url: this.props.config.backend.identity_url.trim('/'),
+      auth_endpoint: 'oauth2/authorize',
+      app_id: this.props.config.backend.app_id,
       clearHash: this.props.clearHash,
     });
     // Complete implicit authentication if we were redirected back to from the provider.
@@ -40,7 +38,11 @@ export default class AzureAuthenticationPage extends React.Component {
       this.props.onLogin(data);
     });
     // Obsolete Azure documentation claims resource is optional...
-    this.authSettings = { scope: 'vso.code_full', resource: 'https://app.vssps.visualstudio.com/' };
+    this.authSettings = {
+      scope: 'vso.code_full,user.read',
+      resource: '499b84ac-1321-427f-aa17-267ca6975798',
+      prompt: 'select_account',
+    };
   }
 
   handleLogin = e => {
@@ -62,10 +64,10 @@ export default class AzureAuthenticationPage extends React.Component {
         onLogin={this.handleLogin}
         loginDisabled={inProgress}
         loginErrorMessage={this.state.loginError}
-        logoUrl={config.get('logo_url')}
+        logoUrl={config.logo_url}
         renderButtonContent={() => (
           <React.Fragment>
-            <LoginButtonIcon type="github" />
+            <LoginButtonIcon type="azure" />
             {inProgress ? 'Logging in...' : 'Login with Azure'}
           </React.Fragment>
         )}
