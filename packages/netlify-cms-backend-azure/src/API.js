@@ -36,7 +36,7 @@ export default class API {
       // create a PAT = personal access token in dev.azure and use that as password
       // see https://majgis.github.io/2017/09/13/Create-Authorization-Basic-Header/ how to create base64 string for basic auth
       // or in FF/Chrom-console > btoa('username@something.com:thisIsMyVeryLongPersonalAccessToken')
-      baseHeader.Authorization = 'Basic Y--generate-your-own-auth-string-with-username-and-personal-access-token-base64-encoded-Q==';
+      // baseHeader.Authorization = 'Basic Y--generate-your-own-auth-string-with-username-and-personal-access-token-base64-encoded-Q==';
     	console.log('** DEBUG azure' +  baseHeader.Authorization );
       return baseHeader;
     }

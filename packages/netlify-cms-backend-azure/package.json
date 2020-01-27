@@ -1,6 +1,6 @@
 {
   "name": "netlify-cms-backend-azure",
-  "description": "Azure backend for Netlify CMS",
+  "description": "Azure DevOps backend for Netlify CMS",
   "version": "2.4.2",
   "license": "MIT",
   "repository": "https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-azure",
@@ -11,13 +11,14 @@
     "netlify",
     "netlify-cms",
     "backend",
-    "azure"
+    "azure",
+    "devops"
   ],
   "sideEffects": false,
   "scripts": {
     "develop": "yarn build:esm --watch",
     "build": "cross-env NODE_ENV=production webpack",
-    "build:esm": "cross-env NODE_ENV=esm babel src --out-dir dist/esm --ignore **/__tests__ --root-mode upward"
+    "build:esm": "cross-env NODE_ENV=esm babel src --out-dir dist/esm --ignore **/__tests__ --root-mode upward --extensions \".js,.jsx,.ts,.tsx\""
   },
   "dependencies": {
     "common-tags": "^1.8.0",

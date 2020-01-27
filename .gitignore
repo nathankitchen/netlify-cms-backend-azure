@@ -19,3 +19,5 @@ coverage/
 .env
 .temp/
 storybook-static/
+
+config.nrk.yml
