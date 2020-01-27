@@ -32,7 +32,7 @@ const MAX_CONCURRENT_DOWNLOADS = 10;
 const PREVIEW_CONTEXT_KEYWORDS = ['deploy'];
 
 class AzureRepo {
-  organisation: string;
+  org: string;
   project: string;
   name: string;
 
@@ -43,7 +43,7 @@ class AzureRepo {
     }
 
     var components = location.split('/', 3);
-    this.organisation = components[0];
+    this.org = components[0];
     this.project = components[1];
     this.name = components[2] || components[1];
   }
@@ -136,6 +136,7 @@ export default class Azure implements Implementation {
     this.api = new API({
       token: this.token,
       branch: this.branch,
+      org: this.repo.org,
       project: this.repo.project,
       repo: this.repo.name,
       api_root: this.apiRoot,

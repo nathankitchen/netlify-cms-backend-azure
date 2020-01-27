@@ -38,7 +38,7 @@ export default class AzureAuthenticationPage extends React.Component {
       this.props.onLogin(data);
     });
     // Obsolete Azure documentation claims resource is optional...
-    this.authSettings = { scope: 'vso.code_full', resource: 'https://app.vssps.visualstudio.com/', prompt: 'select_account' };
+    this.authSettings = { scope: 'vso.code_full', resource: '499b84ac-1321-427f-aa17-267ca6975798', prompt: 'select_account' };
   }
 
   handleLogin = e => {

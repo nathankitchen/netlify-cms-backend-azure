@@ -12,7 +12,7 @@ const CMS_BRANCH_PREFIX = 'cms/';
 
 export default class API {
   constructor(config) {
-    this.api_root = (config.api_root || 'https://dev.azure.com') + `/${config.project}/_apis/git/repositories/`;
+    this.api_root = (config.api_root || 'https://dev.azure.com') + `/${config.org}/${config.project}/_apis/git/repositories/`;
     this.token = config.token || false;
     this.branch = config.branch || 'master';
     this.repo = config.repo || '';
@@ -31,13 +31,7 @@ export default class API {
     };
 
     if (this.token) {
-      baseHeader.Authorization = `token ${this.token}`;
-      // workaround - until token is working as expected and returns expected json instead of non-auth info in html to API calls
-      // create a PAT = personal access token in dev.azure and use that as password
-      // see https://majgis.github.io/2017/09/13/Create-Authorization-Basic-Header/ how to create base64 string for basic auth
-      // or in FF/Chrom-console > btoa('username@something.com:thisIsMyVeryLongPersonalAccessToken')
-      // baseHeader.Authorization = 'Basic Y--generate-your-own-auth-string-with-username-and-personal-access-token-base64-encoded-Q==';
-    	console.log('** DEBUG azure' +  baseHeader.Authorization );
+      baseHeader.Authorization = `Bearer ${this.token}`;
       return baseHeader;
     }
 
