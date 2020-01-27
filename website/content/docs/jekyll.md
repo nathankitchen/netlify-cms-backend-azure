@@ -16,7 +16,7 @@ If you're starting a new project, the fastest route to publishing on a Jekyll we
 
 This guide will use the blog you get if you follow the [really excellent official Jekyll step by step tutorial](https://jekyllrb.com/docs/step-by-step/01-setup/) as a starting point. If you're new to Jekyll - I recommended you start by following the tutorial so you know your way around your new blog. Otherwise [you can clone this repo](https://github.com/adamwatters/jekyll-tutorial-with-netlify-cms/tree/without-cms) and checkout the `without-cms` branch.
 
-![Jekyll tutorial blog screenshot](https://www.netlifycms.org/img/screenshot-jekyll-tutorial-blog?raw=true)
+![Jekyll tutorial blog screenshot](https://www.netlifycms.org/img/screenshot-jekyll-tutorial-blog.png?raw=true)
 
 ## Add Netlify CMS
 
@@ -61,13 +61,13 @@ collections:
 
 ### Setup Backend
 
-Follow the directions in the docs [to enable Identity and Git Gateway](https://www.netlifycms.org/docs/add-to-your-site/#enable-identity-and-git-gateway) then add the [Indentity Widget](https://www.netlifycms.org/docs/add-to-your-site/#add-the-netlify-identity-widget)
+Follow the directions in the docs [to enable Identity and Git Gateway](https://www.netlifycms.org/docs/add-to-your-site/#enable-identity-and-git-gateway) then add the [Identity Widget](https://www.netlifycms.org/docs/add-to-your-site/#add-the-netlify-identity-widget)
 
 ## CMS Configuration
 
 ### Blog Collection
 
-We'll start by updating the `blog` collection. Blogging is baked into into Jekyll, and the `_posts/` directory uses [some special conventions](https://jekyllrb.com/docs/posts/) we'll need to keep in mind as we configure Netlify CMS. Copy and paste the following into your `config.yml`.
+We'll start by updating the `blog` collection. Blogging is baked into Jekyll, and the `_posts/` directory uses [some special conventions](https://jekyllrb.com/docs/posts/) we'll need to keep in mind as we configure Netlify CMS. Copy and paste the following into your `config.yml`.
 
 ```yaml
 collections:
@@ -113,7 +113,7 @@ display_name: Jill Smith
 position: Chief Editor
 ```
 
-then update `_layouts/author.html` and `staff.html` accordingly.
+then update `_layouts/author.html`, `_layouts/post.html` and `staff.html` accordingly.
 
 ```html
 <!-- _layouts/author.html -->
@@ -133,6 +133,23 @@ then update `_layouts/author.html` and `staff.html` accordingly.
   </li>
   {% endfor %}
 </ul>
+```
+
+```html
+<!-- _layouts/post.html -->
+--- layout: default ---
+
+<h1>{{ page.title }}</h1>
+
+<p>
+  {{ page.date | date_to_string }}
+  {% assign author = site.authors | where: 'name', page.author | first %}
+  {% if author %}
+    - <a href="{{ author.url }}">{{ author.display_name }}</a>
+  {% endif %}
+</p>
+
+{{ content }}
 ```
 
 ```html
@@ -269,14 +286,12 @@ Finally, add the following to the collections array in `config.yml`
       name: "navigation"
       file: "_data/navigation.yml"
       fields:
-        - {
-            label: "Navigation Items",
-            name: "items",
-            widget: "list",
-            fields:
-              - {label: Name, name: name, widget: string}
-              - {label: Link, name: link, widget: string}
-          }
+        - label: "Navigation Items"
+          name: "items"
+          widget: "list"
+          fields:
+            - {label: Name, name: name, widget: string}
+            - {label: Link, name: link, widget: string}
 ```
 
 Now you can add, rename, and rearrange the navigation items on your blog.

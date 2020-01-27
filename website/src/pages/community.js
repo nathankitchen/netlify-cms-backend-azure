@@ -1,72 +1,60 @@
 import React from 'react';
 import Helmet from 'react-helmet';
-import Markdown from 'react-markdown';
 import { graphql } from 'gatsby';
+import { css } from '@emotion/core';
 
 import Layout from '../components/layout';
-import EventWidget from '../components/event-widget';
 import Markdownify from '../components/markdownify';
+import PageHero from '../components/page-hero';
+import HeroTitle from '../components/hero-title';
+import Lead from '../components/lead';
+import Container from '../components/container';
+import SectionLabel from '../components/section-label';
+import Page from '../components/page';
+import Grid from '../components/grid';
+import CommunityChannelsList from '../components/community-channels-list';
 
-import '../css/imports/collab.css';
+import theme from '../theme';
 
 const CommunityPage = ({ data }) => {
-  const {
-    title,
-    headline,
-    subhead,
-    primarycta,
-    upcomingevent,
-    howitworks,
-    howtojoin,
-  } = data.markdownRemark.frontmatter;
+  const { title, headline, subhead, sections } = data.markdownRemark.frontmatter;
 
   return (
-    <Layout>
-      <div className="community page">
-        <Helmet title={title} />
-        <section className="community hero">
-          <div className="contained">
-            <div className="hero-copy">
-              <h1 className="headline">
-                <Markdownify source={headline} />
-              </h1>
-              <h2 className="subhead">
-                <Markdownify source={subhead} />
-              </h2>
-              <h3 className="ctas">
-                <ul>
-                  <li>
-                    <Markdownify source={primarycta} />
-                  </li>
-                </ul>
-              </h3>
-            </div>
+    <Layout hasPageHero>
+      <Helmet title={title} />
+      <PageHero>
+        <div
+          css={css`
+            margin-bottom: 20px;
+          `}
+        >
+          <HeroTitle>
+            <Markdownify source={headline} />
+          </HeroTitle>
+          <Lead light>
+            <Markdownify source={subhead} />
+          </Lead>
+        </div>
+      </PageHero>
 
-            <div className="calendar-cta">
-              <h2>{upcomingevent.hook}</h2>
-              <EventWidget />
-              <div className="cal-cta">
-                <Markdownify source={primarycta} />
-              </div>
+      <Container>
+        <Page>
+          <Grid cols={2}>
+            <div
+              css={css`
+                margin-bottom: ${theme.space[5]};
+              `}
+            >
+              {sections.map(({ title: sectionTitle, channels }, channelIdx) => (
+                <React.Fragment key={channelIdx}>
+                  <SectionLabel>{sectionTitle}</SectionLabel>
+                  <CommunityChannelsList channels={channels} />
+                </React.Fragment>
+              ))}
             </div>
-          </div>
-        </section>
-
-        <section className="how-it-works clearfix">
-          <div className="contained">
-            <div className="half">
-              <h4 className="section-label">How it works</h4>
-              <p>
-                <Markdown source={howitworks} />
-              </p>
-              <h4 className="section-label">How to join</h4>
-              <p>
-                <Markdown source={howtojoin} />
-              </p>
-            </div>
-          </div>
-        </section>
-      </div>
+          </Grid>
+        </Page>
+      </Container>
     </Layout>
   );
 };
@@ -77,12 +65,14 @@ export const pageQuery = graphql`
       frontmatter {
         headline
         subhead
-        primarycta
-        upcomingevent {
-          hook
+        sections {
+          title
+          channels {
+            title
+            description
+            url
+          }
         }
-        howitworks
-        howtojoin
       }
     }
   }

@@ -2,10 +2,10 @@
 
 backend:
   name: azure
-  branch: branch-name
-  project: organization-name/project-name
-  repo: repo-name
-  tenant_id: tenant-id
-  app_id: registered-app-id  
+  branch: master
+  repo: <organisation>/<project>/<repo>
+  identity_url: https://login.microsoftonline.com/<your-tenant-id>
+  app_id: <your-app-id>
+  api_root: https://dev.azure.com/<devops-org-name>
   
 site_url: "http://localhost:8080"

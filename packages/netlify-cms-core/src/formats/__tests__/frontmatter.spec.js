@@ -5,8 +5,6 @@ import {
   frontmatterYAML,
 } from '../frontmatter';
 
-jest.mock('../../valueObjects/AssetProxy.js');
-
 describe('Frontmatter', () => {
   it('should parse YAML with --- delimiters', () => {
     expect(
@@ -79,6 +77,16 @@ describe('Frontmatter', () => {
     ).toEqual({
       title: 'TOML',
       description: 'Front matter',
+      body: 'Content',
+    });
+  });
+
+  it('should parse TOML with 0.5 style dates', () => {
+    expect(
+      FrontmatterInfer.fromFile('+++\ntitle = "TOML"\ndate = 2018-12-24\n+++\nContent'),
+    ).toEqual({
+      title: 'TOML',
+      date: new Date('2018-12-24T00:00:00.000Z'),
       body: 'Content',
     });
   });

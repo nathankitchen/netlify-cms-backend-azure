@@ -3,6 +3,99 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.7.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/compare/netlify-cms-backend-test@2.7.0...netlify-cms-backend-test@2.7.1) (2020-01-14)
+
+**Note:** Version bump only for package netlify-cms-backend-test
+
+
+
+
+
+# [2.7.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/compare/netlify-cms-backend-test@2.7.0-beta.0...netlify-cms-backend-test@2.7.0) (2020-01-07)
+
+**Note:** Version bump only for package netlify-cms-backend-test
+
+
+
+
+
+# [2.7.0-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/compare/netlify-cms-backend-test@2.6.0...netlify-cms-backend-test@2.7.0-beta.0) (2019-12-18)
+
+
+### Features
+
+* bundle assets with content ([#2958](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/issues/2958)) ([2b41d8a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/commit/2b41d8a838a9c8a6b21cde2ddd16b9288334e298))
+
+
+
+
+
+# [2.6.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/compare/netlify-cms-backend-test@2.6.0-beta.0...netlify-cms-backend-test@2.6.0) (2019-12-18)
+
+**Note:** Version bump only for package netlify-cms-backend-test
+
+
+
+
+
+# [2.6.0-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/compare/netlify-cms-backend-test@2.5.0...netlify-cms-backend-test@2.6.0-beta.0) (2019-12-02)
+
+
+### Bug Fixes
+
+* **backend-test:** delete nested file path ([#2930](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/issues/2930)) ([b0fba6d](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/commit/b0fba6dc9ab89784e72d69a71752f68e0255a7e0))
+* keep editor slug path ([#2934](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/issues/2934)) ([3c4865f](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/commit/3c4865f2a76e6b0f156ab801081251eb620495b2))
+
+
+### Features
+
+* content in sub folders ([#2897](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/issues/2897)) ([afcfe5b](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/commit/afcfe5b6d5f32669e9061ec596bd35ad545d61a3))
+
+
+
+
+
+# [2.5.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/compare/netlify-cms-backend-test@2.4.0...netlify-cms-backend-test@2.5.0) (2019-11-26)
+
+
+### Features
+
+* workflow unpublished entry ([#2914](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/issues/2914)) ([41bb9aa](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/commit/41bb9aac0dd6fd9f8ff157bb0b29c85aa87fe04d))
+
+
+
+
+
+# [2.4.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/compare/netlify-cms-backend-test@2.3.0...netlify-cms-backend-test@2.4.0) (2019-11-18)
+
+
+### Features
+
+* commit media with post ([#2851](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/issues/2851)) ([6515dee](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/commit/6515dee8715d8571ea19484a7dfab7cfd0cc40be))
+
+
+
+
+
+# [2.3.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/compare/netlify-cms-backend-test@2.2.3...netlify-cms-backend-test@2.3.0) (2019-11-07)
+
+
+### Features
+
+* add go back to site button ([#2538](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/issues/2538)) ([f206e7e](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/commit/f206e7e5a13fb48ec6b27dce0dbb3a59b61de8f9))
+
+
+
+
+
+## [2.2.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/compare/netlify-cms-backend-test@2.2.2...netlify-cms-backend-test@2.2.3) (2019-07-24)
+
+**Note:** Version bump only for package netlify-cms-backend-test
+
+
+
+
+
 ## [2.2.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-test/compare/netlify-cms-backend-test@2.2.2-beta.0...netlify-cms-backend-test@2.2.2) (2019-04-10)
 
 **Note:** Version bump only for package netlify-cms-backend-test

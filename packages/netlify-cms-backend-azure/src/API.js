@@ -21,23 +21,26 @@ const CMS_BRANCH_PREFIX = 'cms/';
 
 export default class API {
   constructor(config) {
-    this.api_root = (config.api_root || 'https://dev.azure.com') + `/${config.project}/_apis/git/repositories/`;
+    this.api_root = (config.api_root || 'https://dev.azure.com') + `/${config.org}/${config.project}/_apis/git/repositories/`;
     this.token = config.token || false;
     this.branch = config.branch || 'master';
     this.repo = config.repo || '';
     this.repoURL = `${this.repo}`;
     this.merge_method = config.squash_merges ? 'squash' : 'merge';
     this.initialWorkflowStatus = config.initialWorkflowStatus;
+    this.apiversion = '5.0'; // Azure API version is recommended and sometimes even required
   }
 
   requestHeaders(headers = {}) {
     const baseHeader = {
       'Content-Type': 'application/json',
+	    'Access-Control-Allow-Origin' : '*', // Azure response header requires this
+	    'Origin': '*', 
       ...headers,
     };
 
     if (this.token) {
-      baseHeader.Authorization = `token ${this.token}`;
+      baseHeader.Authorization = `Bearer ${this.token}`;
       return baseHeader;
     }
 
@@ -56,21 +59,31 @@ export default class API {
 
   urlFor(path, options) {
     const cacheBuster = new Date().getTime();
-    const params = [`ts=${cacheBuster}`];
+    const params = [`ts=${cacheBuster}&api-version=${this.apiversion}`]; // added Azure specific api-version
+    let pathext;
     if (options.params) {
       for (const key in options.params) {
         params.push(`${key}=${encodeURIComponent(options.params[key])}`);
       }
     }
     if (params.length) {
-      path += `?${params.join('&')}`;
+      pathext = `${params.join('&')}`;
     }
-    return this.api_root + path;
-  }
+    if (path.match(/^https/)) { // Azure specific - path may already be a fully qualified URL 
+      path +=  `?${pathext}`; // assume we have already one divider '?'
+    } else {
+      path = this.api_root + path +  `?${pathext}`;
+    }
+    console.log('** DEBUG azure urlFor  -- path = ' + path + ' -- options: ' + JSON.stringify( options )  );
+    return path;
+    // return this.api_root + path;
+    }
 
   request(path, options = {}) {
     const headers = this.requestHeaders(options.headers || {});
+    console.log('**DEBUG entering req path: ' + path +   ' -- options: ' + JSON.stringify( options ) );
     const url = this.urlFor(path, options);
+	  options.mode = 'cors'; // Azure ensure headers are set to get suitable response
     let responseStatus;
     return fetch(url, { ...options, headers })
       .then(response => {
@@ -80,12 +93,14 @@ export default class API {
           return this.parseJsonResponse(response);
         }
         const text = response.text();
+        console.log('**DEBUG hm, req response was text not json: ' + JSON.stringify( text ) );
         if (!response.ok) {
           return Promise.reject(text);
         }
         return text;
       })
       .catch(error => {
+        console.log('**DEBUG: request catch ' + url + error.message + responseStatus);
         throw new APIError(error.message, responseStatus, 'Azure');
       });
   }
@@ -95,29 +110,37 @@ export default class API {
   }
 
   checkMetadataRef() {
-    return this.request(`${this.repoURL}/git/refs/meta/_netlify_cms?${Date.now()}`, {
+    return this.request(`${this.repoURL}/git/refs/meta/_netlify_cms?${Date.now()}`, { // TODO: rework for Azure
       cache: 'no-store',
     })
       .then(response => response.object)
       .catch(() => {
         // Meta ref doesn't exist
         const readme = {
-          raw:
-            '# Netlify CMS\n\nThis tree is used by the Netlify CMS to store metadata information for specific files and branches.',
+        //  raw:
+        //    '# Netlify CMS\n\nThis tree is used by the Netlify CMS to store metadata information for specific files and branches.',
         };
 
         return this.uploadBlob(readme)
           .then(item =>
-            this.request(`${this.repoURL}/git/trees`, {
-              method: 'POST',
+            // this.request(`${this.repoURL}/git/trees`, {
+            this.request(`${this.repoURL}/git/pushes`, {  // Azure
+                method: 'POST',
               body: JSON.stringify({
-                tree: [{ path: 'README.md', mode: '100644', type: 'blob', sha: item.sha }],
+                // tree: [{ path: 'README.md', mode: '100644', type: 'blob', sha: item.sha }],
+                refUpdates: [{ name: 'refs/meta/_netlify_001', oldObjectId:"0000000000000000000000000000000000000000" }], 
+                commits: [ { comment: "Initial commit." ,
+                  changes: [ { changeType: "add", item: { path: "/readme.md" }, 
+                  newContent: { contentType: "rawtext", 
+                  content: 
+                  '# Netlify CMS\n\nThis tree is used by the Netlify CMS to store metadata information for specific files and branches.'
+                  } } ] } ]
               }),
             }),
           )
-          .then(tree => this.commit('First Commit', tree))
-          .then(response => this.createRef('meta', '_netlify_cms', response.sha))
-          .then(response => response.object);
+          // .then(tree => this.commit('First Commit', tree))
+          // .then(response => this.createRef('meta', '_netlify_cms', response.sha))
+          // .then(response => response.object);
       });
   }
 
@@ -154,8 +177,8 @@ export default class API {
         '%c Checking for MetaData files',
         'line-height: 30px;text-align: center;font-weight: bold',
       );
-      return this.request(`${this.repoURL}/contents/${key}.json`, {
-        params: { ref: 'refs/meta/_netlify_cms' },
+      return this.request(`${this.repoURL}/items/${key}.json`, {
+        params: { version: 'refs/meta/_netlify_cms' },
         headers: { Accept: 'application/vnd.github.VERSION.raw' },
         cache: 'no-store',
       })
@@ -172,13 +195,14 @@ export default class API {
 
   readFile(path, sha, branch = this.branch) {
     if (sha) {
-      return this.getBlob(sha);
+      return this.getBlob(sha, path); // Azure if we have ObjId = sha then we usually already have an URL, too
     } else {
-      return this.request(`${this.repoURL}/contents/${path}`, {
+      return this.request(`${this.repoURL}/items/${path}`, {
         headers: { Accept: 'application/vnd.github.VERSION.raw' },
-        params: { ref: branch },
+        // params: { ref: branch },
+        params: { version: branch },
         cache: 'no-store',
-      }).catch(error => {
+      }).catch(error => { // Azure - not sure if we will ever get beyond this point
         if (hasIn(error, 'message.errors') && find(error.message.errors, { code: 'too_large' })) {
           const dir = path
             .split('/')
@@ -193,32 +217,46 @@ export default class API {
     }
   }
 
-  getBlob(sha) {
-    return localForage.getItem(`gh.${sha}`).then(cached => {
-      if (cached) {
-        return cached;
-      }
+  getBlob(sha, url) { // In Azure we don't have the ObjectId = sha handy always - caution !
+    // Azure - disable caching as long as we cannot ensure a valid ObjId = sha always
+    // return localForage.getItem(`gh.${sha}`).then(cached => {
+    //  if (cached) {
+    //    return cached;
+    //  }
 
-      return this.request(`${this.repoURL}/git/blobs/${sha}`, {
-        headers: { Accept: 'application/vnd.github.VERSION.raw' },
+      // return this.request(`${this.repoURL}/git/blobs/${sha}`, {
+        return this.request(`${url}`, { // Azure
+          headers: { Accept: 'application/vnd.github.VERSION.raw' },
       }).then(result => {
         localForage.setItem(`gh.${sha}`, result);
         return result;
       });
-    });
+    // });
   }
 
   listFiles(path) {
-    return this.request(`${this.repoURL}/contents/${path.replace(/\/$/, '')}`, {
-      params: { ref: this.branch },
-    })
-      .then(files => {
+    // return this.request(`${this.repoURL}/contents/${path.replace(/\/$/, '')}`, {
+    return this.request(`${this.repoURL}/items/`, { // Azure
+        // params: { ref: this.branch },
+      params: { version: this.branch, path: path }, // Azure
+    }).then(response => {
+      console.log('**DEBUG: getTreeId -- returnObj: ' + JSON.stringify(response) )
+        return response._links.tree.href 
+      })
+      .then ( url => {
+         console.log('**DEBUG: list files  -- url: ' + url )
+        return this.request(`${url}`);
+      })
+      .then(response => {
+        const files = ( response.treeEntries || [ ]);
+        console.log('** DEBUG - treeEntries ' + JSON.stringify(files) );
         if (!Array.isArray(files)) {
           throw new Error(`Cannot list files, path ${path} is not a directory but a ${files.type}`);
         }
         return files;
       })
-      .then(files => files.filter(file => file.type === 'file'));
+      // .then(files => files.filter(file => file.type === 'file'));
+      .then(files => files.filter(file => file.gitObjectType === 'blob'));    // Azure
   }
 
   readUnpublishedBranchFile(contentKey) {
@@ -849,6 +887,16 @@ export default class API {
     return this.request(`${this.repoURL}/git/commits`, {
       method: 'POST',
       body: JSON.stringify({ message, tree: treeSha, parents, author, committer }),
+    });
+  }
+
+  // In Azure we don't always have the SHA resp ID handy
+  // this function is to get the ObjectId and CommitId (output)
+  // from path and branch (input)
+  getAzureId(path, branch = this.branch ) {
+    return this.request(`${this.repoURL}/items`, {
+      params: { version: this.branch, path: path,
+        '$format': "json", versionType: "Branch", versionOptions: "None" } // Azure hardwired to get expected response format   
     });
   }
 }

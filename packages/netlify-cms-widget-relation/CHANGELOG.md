@@ -3,6 +3,68 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.5.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/compare/netlify-cms-widget-relation@2.4.2...netlify-cms-widget-relation@2.5.0) (2019-11-18)
+
+
+### Bug Fixes
+
+* **bundle-size:** don't import react-select twice ([#2875](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/issues/2875)) ([665afed](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/commit/665afed3c20f1d74ba4b2ef65d0eb5130e558433))
+
+
+### Features
+
+* commit media with post ([#2851](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/issues/2851)) ([6515dee](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/commit/6515dee8715d8571ea19484a7dfab7cfd0cc40be))
+
+
+
+
+
+## [2.4.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/compare/netlify-cms-widget-relation@2.4.1...netlify-cms-widget-relation@2.4.2) (2019-09-26)
+
+**Note:** Version bump only for package netlify-cms-widget-relation
+
+
+
+
+
+## [2.4.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/compare/netlify-cms-widget-relation@2.4.0...netlify-cms-widget-relation@2.4.1) (2019-07-24)
+
+**Note:** Version bump only for package netlify-cms-widget-relation
+
+
+
+
+
+# [2.4.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/compare/netlify-cms-widget-relation@2.3.3...netlify-cms-widget-relation@2.4.0) (2019-06-26)
+
+
+### Features
+
+* **widget-relation:** support nested field references in relation widget ([#2391](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/issues/2391)) ([d6964b5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/commit/d6964b5))
+
+
+
+
+
+## [2.3.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/compare/netlify-cms-widget-relation@2.3.3-beta.0...netlify-cms-widget-relation@2.3.3) (2019-06-14)
+
+**Note:** Version bump only for package netlify-cms-widget-relation
+
+
+
+
+
+## [2.3.3-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/compare/netlify-cms-widget-relation@2.3.2...netlify-cms-widget-relation@2.3.3-beta.0) (2019-05-15)
+
+
+### Bug Fixes
+
+* **widget-relation:** clear button ([#2285](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/issues/2285)) ([9318aa0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/commit/9318aa0))
+
+
+
+
+
 ## [2.3.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-relation/compare/netlify-cms-widget-relation@2.3.2-beta.0...netlify-cms-widget-relation@2.3.2) (2019-04-10)
 
 **Note:** Version bump only for package netlify-cms-widget-relation

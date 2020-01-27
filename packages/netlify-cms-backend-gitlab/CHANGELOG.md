@@ -3,6 +3,95 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.5.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/compare/netlify-cms-backend-gitlab@2.5.1...netlify-cms-backend-gitlab@2.5.2) (2020-01-21)
+
+
+### Bug Fixes
+
+* **backend-gitlab:** check for shared group permissions ([#3122](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/issues/3122)) ([f1739e9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/commit/f1739e978f9dee1de42dd5479ec80a5d991a9bfe))
+* **git-gateway-gitlab:** fix large media support for editorial workflow ([#3105](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/issues/3105)) ([038803c](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/commit/038803c9f249de386812652372c35c4c53935295))
+
+
+
+
+
+## [2.5.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/compare/netlify-cms-backend-gitlab@2.5.0...netlify-cms-backend-gitlab@2.5.1) (2020-01-14)
+
+**Note:** Version bump only for package netlify-cms-backend-gitlab
+
+
+
+
+
+# [2.5.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/compare/netlify-cms-backend-gitlab@2.5.0-beta.0...netlify-cms-backend-gitlab@2.5.0) (2020-01-07)
+
+**Note:** Version bump only for package netlify-cms-backend-gitlab
+
+
+
+
+
+# [2.5.0-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/compare/netlify-cms-backend-gitlab@2.4.0...netlify-cms-backend-gitlab@2.5.0-beta.0) (2019-12-18)
+
+
+### Features
+
+* bundle assets with content ([#2958](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/issues/2958)) ([2b41d8a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/commit/2b41d8a838a9c8a6b21cde2ddd16b9288334e298))
+
+
+
+
+
+# [2.4.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/compare/netlify-cms-backend-gitlab@2.4.0-beta.1...netlify-cms-backend-gitlab@2.4.0) (2019-12-18)
+
+**Note:** Version bump only for package netlify-cms-backend-gitlab
+
+
+
+
+
+# [2.4.0-beta.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/compare/netlify-cms-backend-gitlab@2.4.0-beta.0...netlify-cms-backend-gitlab@2.4.0-beta.1) (2019-12-02)
+
+
+### Features
+
+* content in sub folders ([#2897](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/issues/2897)) ([afcfe5b](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/commit/afcfe5b6d5f32669e9061ec596bd35ad545d61a3))
+
+
+
+
+
+# [2.4.0-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/compare/netlify-cms-backend-gitlab@2.3.3-beta.1...netlify-cms-backend-gitlab@2.4.0-beta.0) (2019-11-07)
+
+
+### Features
+
+* add go back to site button ([#2538](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/issues/2538)) ([f206e7e](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/commit/f206e7e5a13fb48ec6b27dce0dbb3a59b61de8f9))
+* enable specifying custom open authoring commit message ([#2810](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/issues/2810)) ([2841ff9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/commit/2841ff9ffe58afcf4dba45514a84a262ad370f1d))
+
+
+
+
+
+## [2.3.3-beta.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/compare/netlify-cms-backend-gitlab@2.3.3-beta.0...netlify-cms-backend-gitlab@2.3.3-beta.1) (2019-09-26)
+
+
+### Bug Fixes
+
+* **backend-gitlab:** exclude directories in paginated results ([#2668](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/issues/2668)) ([3903acb](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/commit/3903acb))
+
+
+
+
+
+## [2.3.3-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/compare/netlify-cms-backend-gitlab@2.3.2...netlify-cms-backend-gitlab@2.3.3-beta.0) (2019-08-24)
+
+**Note:** Version bump only for package netlify-cms-backend-gitlab
+
+
+
+
+
 ## [2.3.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-gitlab/compare/netlify-cms-backend-gitlab@2.3.2-beta.0...netlify-cms-backend-gitlab@2.3.2) (2019-04-10)
 
 **Note:** Version bump only for package netlify-cms-backend-gitlab

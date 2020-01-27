@@ -1,9 +1,8 @@
-/** @jsx jsx */
 import PropTypes from 'prop-types';
 import React from 'react';
 import ImmutablePropTypes from 'react-immutable-proptypes';
 import styled from '@emotion/styled';
-import { jsx, css } from '@emotion/core';
+import { css } from '@emotion/core';
 import { translate } from 'react-polyglot';
 import { NavLink } from 'react-router-dom';
 import {
@@ -118,6 +117,7 @@ class Header extends React.Component {
     openMediaLibrary: PropTypes.func.isRequired,
     hasWorkflow: PropTypes.bool.isRequired,
     displayUrl: PropTypes.string,
+    isTestRepo: PropTypes.bool,
     t: PropTypes.func.isRequired,
   };
 
@@ -136,6 +136,7 @@ class Header extends React.Component {
       openMediaLibrary,
       hasWorkflow,
       displayUrl,
+      isTestRepo,
       t,
       showMediaButton,
     } = this.props;
@@ -198,6 +199,7 @@ class Header extends React.Component {
             )}
             <SettingsDropdown
               displayUrl={displayUrl}
+              isTestRepo={isTestRepo}
               imageUrl={user.get('avatar_url')}
               onLogoutClick={onLogoutClick}
             />

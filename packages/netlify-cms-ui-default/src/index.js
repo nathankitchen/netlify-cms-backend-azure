@@ -2,10 +2,14 @@ import Dropdown, { DropdownItem, DropdownButton, StyledDropdownButton } from './
 import Icon from './Icon';
 import ListItemTopBar from './ListItemTopBar';
 import Loader from './Loader';
+import FieldLabel from './FieldLabel';
+import IconButton from './IconButton';
 import Toggle, { ToggleContainer, ToggleBackground, ToggleHandle } from './Toggle';
 import AuthenticationPage from './AuthenticationPage';
 import WidgetPreviewContainer from './WidgetPreviewContainer';
 import ObjectWidgetTopBar from './ObjectWidgetTopBar';
+import GoBackButton from './GoBackButton';
+import Asset from './Asset';
 import {
   fonts,
   colorsRaw,
@@ -13,6 +17,7 @@ import {
   lengths,
   components,
   buttons,
+  text,
   shadows,
   borders,
   transitions,
@@ -27,7 +32,9 @@ export const NetlifyCmsUiDefault = {
   DropdownButton,
   StyledDropdownButton,
   ListItemTopBar,
+  FieldLabel,
   Icon,
+  IconButton,
   Loader,
   Toggle,
   ToggleContainer,
@@ -43,11 +50,13 @@ export const NetlifyCmsUiDefault = {
   components,
   buttons,
   shadows,
+  text,
   borders,
   transitions,
   effects,
   reactSelectStyles,
   GlobalStyles,
+  Asset,
 };
 export {
   Dropdown,
@@ -55,7 +64,9 @@ export {
   DropdownButton,
   StyledDropdownButton,
   ListItemTopBar,
+  FieldLabel,
   Icon,
+  IconButton,
   Loader,
   Toggle,
   ToggleContainer,
@@ -71,9 +82,12 @@ export {
   components,
   buttons,
   shadows,
+  text,
   borders,
   transitions,
   effects,
   reactSelectStyles,
   GlobalStyles,
+  GoBackButton,
+  Asset,
 };

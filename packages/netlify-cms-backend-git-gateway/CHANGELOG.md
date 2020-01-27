@@ -3,6 +3,145 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.7.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.7.0...netlify-cms-backend-git-gateway@2.7.1) (2020-01-24)
+
+
+### Bug Fixes
+
+* **backend-git-gateway:** re-write GitHub pagination links ([#3135](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/3135)) ([834f6b9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/834f6b9e457f3738ce0f240ddd4cc160aff9e2f5))
+
+
+
+
+
+# [2.7.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.6.2...netlify-cms-backend-git-gateway@2.7.0) (2020-01-21)
+
+
+### Bug Fixes
+
+* **git-gateway-gitlab:** fix large media support for editorial workflow ([#3105](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/3105)) ([038803c](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/038803c9f249de386812652372c35c4c53935295))
+
+
+### Features
+
+* **backend-bitbucket:** Add Git-LFS support ([#3118](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/3118)) ([a48c02d](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/a48c02d852ca5e11055da3a14cefae8d17a68498))
+
+
+
+
+
+## [2.6.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.6.1...netlify-cms-backend-git-gateway@2.6.2) (2020-01-16)
+
+
+### Bug Fixes
+
+* don't fail on malformed pointer files ([#3095](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/3095)) ([9210843](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/92108431f0c3df3e99b5aa7f462006ec3fa7777e))
+
+
+
+
+
+## [2.6.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.6.0...netlify-cms-backend-git-gateway@2.6.1) (2020-01-14)
+
+**Note:** Version bump only for package netlify-cms-backend-git-gateway
+
+
+
+
+
+# [2.6.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.6.0-beta.0...netlify-cms-backend-git-gateway@2.6.0) (2020-01-07)
+
+
+### Bug Fixes
+
+* rebase open authoring branches ([#2975](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/2975)) ([8c175f6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/8c175f6132fa18a13763cc563f7d3201c1e3580e))
+
+
+### Features
+
+* **backend-git-gateway:** handle identity disabled error message ([#3002](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/3002)) ([b5ffccd](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/b5ffccdac506db416c09aaebb38611783487c52a))
+
+
+
+
+
+# [2.6.0-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.5.1...netlify-cms-backend-git-gateway@2.6.0-beta.0) (2019-12-18)
+
+
+### Features
+
+* bundle assets with content ([#2958](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/2958)) ([2b41d8a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/2b41d8a838a9c8a6b21cde2ddd16b9288334e298))
+
+
+
+
+
+## [2.5.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.5.0...netlify-cms-backend-git-gateway@2.5.1) (2019-11-18)
+
+
+### Bug Fixes
+
+* **git-gateway:** unpublished entries not loaded for git-gateway(GitHub) ([#2856](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/2856)) ([4a2328b](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/4a2328b2f10ea678184391e4caf235b41323cd3e))
+
+
+
+
+
+# [2.5.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.4.6...netlify-cms-backend-git-gateway@2.5.0) (2019-11-07)
+
+
+### Bug Fixes
+
+* **backend-git-gateway:** omit /repos/ when no repo ([#2846](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/2846)) ([da2dab3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/da2dab305ab7f0655791ef0fb5376e3d5e72897c))
+
+
+### Features
+
+* add go back to site button ([#2538](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/2538)) ([f206e7e](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/f206e7e5a13fb48ec6b27dce0dbb3a59b61de8f9))
+* enable specifying custom open authoring commit message ([#2810](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/2810)) ([2841ff9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/2841ff9ffe58afcf4dba45514a84a262ad370f1d))
+
+
+
+
+
+## [2.4.6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.4.5...netlify-cms-backend-git-gateway@2.4.6) (2019-09-26)
+
+
+### Bug Fixes
+
+* **git-gateway:** pass api URL instead of constructing it from repo value ([#2631](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/2631)) ([922c0f3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/922c0f3))
+
+
+
+
+
+## [2.4.5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.4.4...netlify-cms-backend-git-gateway@2.4.5) (2019-07-24)
+
+**Note:** Version bump only for package netlify-cms-backend-git-gateway
+
+
+
+
+
+## [2.4.4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.4.3...netlify-cms-backend-git-gateway@2.4.4) (2019-06-26)
+
+**Note:** Version bump only for package netlify-cms-backend-git-gateway
+
+
+
+
+
+## [2.4.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.4.2...netlify-cms-backend-git-gateway@2.4.3) (2019-06-18)
+
+
+### Bug Fixes
+
+* **core:** address new entries error for non-github backends ([#2390](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/issues/2390)) ([a5bd6b3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/commit/a5bd6b3))
+
+
+
+
+
 ## [2.4.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-git-gateway/compare/netlify-cms-backend-git-gateway@2.4.2-beta.0...netlify-cms-backend-git-gateway@2.4.2) (2019-04-10)
 
 **Note:** Version bump only for package netlify-cms-backend-git-gateway

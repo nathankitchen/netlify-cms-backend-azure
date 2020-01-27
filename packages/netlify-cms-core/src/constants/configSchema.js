@@ -24,22 +24,32 @@ const fieldsConfig = {
 /**
  * The schema had to be wrapped in a function to
  * fix a circular dependency problem for WebPack,
- * where the imports get resolved asyncronously.
+ * where the imports get resolved asynchronously.
  */
 const getConfigSchema = () => ({
   type: 'object',
   properties: {
     backend: {
       type: 'object',
-      properties: { name: { type: 'string', examples: ['test-repo'] } },
+      properties: {
+        name: { type: 'string', examples: ['test-repo'] },
+        auth_scope: {
+          type: 'string',
+          examples: ['repo', 'public_repo'],
+          enum: ['repo', 'public_repo'],
+        },
+        open_authoring: { type: 'boolean', examples: [true] },
+      },
       required: ['name'],
     },
+    locale: { type: 'string', examples: ['en', 'fr', 'de'] },
     site_url: { type: 'string', examples: ['https://example.com'] },
     display_url: { type: 'string', examples: ['https://example.com'] },
     logo_url: { type: 'string', examples: ['https://example.com/images/logo.svg'] },
     show_preview_links: { type: 'boolean' },
     media_folder: { type: 'string', examples: ['assets/uploads'] },
     public_folder: { type: 'string', examples: ['/uploads'] },
+    media_folder_relative: { type: 'boolean' },
     media_library: {
       type: 'object',
       properties: {
@@ -91,6 +101,7 @@ const getConfigSchema = () => ({
           identifier_field: { type: 'string' },
           summary: { type: 'string' },
           slug: { type: 'string' },
+          path: { type: 'string' },
           preview_path: { type: 'string' },
           preview_path_date_field: { type: 'string' },
           create: { type: 'boolean' },
@@ -168,7 +179,7 @@ class ConfigError extends Error {
  * the config that is passed in.
  */
 export function validateConfig(config) {
-  const ajv = new AJV({ allErrors: true });
+  const ajv = new AJV({ allErrors: true, jsonPointers: true });
   ajvErrors(ajv);
 
   const valid = ajv.validate(getConfigSchema(), config);

@@ -3,6 +3,334 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.15.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.15.2...netlify-cms-core@2.15.3) (2020-01-22)
+
+**Note:** Version bump only for package netlify-cms-core
+
+
+
+
+
+## [2.15.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.15.1...netlify-cms-core@2.15.2) (2020-01-15)
+
+
+### Reverts
+
+* don't force multiline flag for editor component patterns ([#3089](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/3089)) ([c4cbae7](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/c4cbae77255d1f422fd62258a01007956d512392))
+
+
+
+
+
+## [2.15.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.15.0...netlify-cms-core@2.15.1) (2020-01-14)
+
+**Note:** Version bump only for package netlify-cms-core
+
+
+
+
+
+# [2.15.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.14.1...netlify-cms-core@2.15.0) (2020-01-14)
+
+
+### Bug Fixes
+
+* **core:** force multiline flag for editor component patterns ([#3082](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/3082)) ([476f450](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/476f45096efa1723936a73f2e2e04d5c7ccd293f))
+
+
+### Features
+
+* support per collection public_folder ([#3069](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/3069)) ([0a50efd](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/0a50efda8e5a9e5cc99291890e3eab2307266c56))
+
+
+
+
+
+## [2.14.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.14.0...netlify-cms-core@2.14.1) (2020-01-09)
+
+
+### Bug Fixes
+
+* don't wait for external media library to load ([#3050](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/3050)) ([5bd7240](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/5bd724026c8ebc08c56514f2c983d49c25c914ee))
+
+
+
+
+
+# [2.14.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.14.0-beta.1...netlify-cms-core@2.14.0) (2020-01-07)
+
+
+### Bug Fixes
+
+* always ensure collection exists before routing ([#2992](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2992)) ([982fd7b](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/982fd7b0f88f851d4e9bb33c8430313c2e816f43))
+* cleanup nested widget validation ([#2991](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2991)) ([e4ba4d9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/e4ba4d9d749c864e594c10e0bb31b0b8c4e6e60b))
+* duplicate and new entry action ([#3003](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/3003)) ([9e7aa0c](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/9e7aa0c500f2bd394ca711846ec88c2b4fbf7ec5))
+* rebase open authoring branches ([#2975](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2975)) ([8c175f6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/8c175f6132fa18a13763cc563f7d3201c1e3580e))
+
+
+### Features
+
+* **backend-git-gateway:** handle identity disabled error message ([#3002](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/3002)) ([b5ffccd](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/b5ffccdac506db416c09aaebb38611783487c52a))
+
+
+
+
+
+# [2.14.0-beta.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.14.0-beta.0...netlify-cms-core@2.14.0-beta.1) (2019-12-19)
+
+
+### Bug Fixes
+
+* select widget dropdown options ([#2981](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2981)) ([9173d8c](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/9173d8c97e27a3742a25c36cc7cb11202c861385))
+
+
+
+
+
+# [2.14.0-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0...netlify-cms-core@2.14.0-beta.0) (2019-12-18)
+
+
+### Features
+
+* bundle assets with content ([#2958](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2958)) ([2b41d8a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/2b41d8a838a9c8a6b21cde2ddd16b9288334e298))
+
+
+
+
+
+# [2.13.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.10...netlify-cms-core@2.13.0) (2019-12-18)
+
+
+### Bug Fixes
+
+* don't show progress when loading preview status ([#2974](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2974)) ([af61245](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/af6124536013e95b417501ef17f1144baffada72))
+
+
+
+
+
+# [2.13.0-beta.10](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.9...netlify-cms-core@2.13.0-beta.10) (2019-12-16)
+
+
+### Features
+
+* Code Widget + Markdown Widget Internal Overhaul ([#2828](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2828)) ([18c579d](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/18c579d0e9f0ff71ed8c52f5c66f2309259af054))
+
+
+
+
+
+# [2.13.0-beta.9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.8...netlify-cms-core@2.13.0-beta.9) (2019-12-11)
+
+
+### Features
+
+* duplicate entry ([#2956](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2956)) ([d180bff](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/d180bffb44432a82f2b4e5a08df5693b30268fee))
+
+
+
+
+
+# [2.13.0-beta.8](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.7...netlify-cms-core@2.13.0-beta.8) (2019-12-02)
+
+
+### Bug Fixes
+
+* .d.ts definitions for core and app ([#2929](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2929)) ([7391061](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/7391061b3b8b1971b994f497a6df29b7d5c3da74))
+* keep editor slug path ([#2934](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2934)) ([3c4865f](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/3c4865f2a76e6b0f156ab801081251eb620495b2))
+* load unpublished entries ([#2927](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2927)) ([caaa8b6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/caaa8b6db408623fd6001b9a8bad5d4711afbc76))
+* unpublish published entry ([#2931](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2931)) ([45a6ee9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/45a6ee92cc9322c57a3cd996b33c07d26c2d645e))
+* **core:** use UTC date methods for slug formatting ([#2944](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2944)) ([d0b32a7](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/d0b32a7a0af62c08433f7d3ce0828214714ce28e))
+
+
+### Features
+
+* content in sub folders ([#2897](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2897)) ([afcfe5b](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/afcfe5b6d5f32669e9061ec596bd35ad545d61a3))
+
+
+
+
+
+# [2.13.0-beta.7](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.6...netlify-cms-core@2.13.0-beta.7) (2019-11-26)
+
+
+### Bug Fixes
+
+* emotion use ref prop ([#2905](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2905)) ([9ddfa48](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/9ddfa48512e54c77fc8e9a0f2eba4f0abf7c9029))
+* **backend-github:** prepend collection name ([#2878](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2878)) ([465f463](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/465f4639597f258d5aa2c1b65e9d2c16023ee7ae))
+* **deps:** update dependency react-is to v16.12.0 ([#2912](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2912)) ([695b0e0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/695b0e03805e7e1610787ec5f093499681bd3568))
+
+
+### Features
+
+* workflow unpublished entry ([#2914](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2914)) ([41bb9aa](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/41bb9aac0dd6fd9f8ff157bb0b29c85aa87fe04d))
+
+
+
+
+
+# [2.13.0-beta.6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.5...netlify-cms-core@2.13.0-beta.6) (2019-11-18)
+
+
+### Bug Fixes
+
+* **media-libs:** accept string or string array for insertMedia action ([#2857](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2857)) ([f5c8ff3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/f5c8ff31f121e550f81b2472f2e3f0c8d76aab1b))
+* **workflow:** label file collection entries in Workflow ([#2566](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2566)) ([542a7ac](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/542a7acfe60719f30bbb1ec8da37f6a498194400))
+
+
+### Features
+
+* add translation support ([#2870](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2870)) ([096b067](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/096b067d4542c723630ded631fc9a4ba950732f3)), closes [#2877](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2877)
+* commit media with post ([#2851](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2851)) ([6515dee](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/6515dee8715d8571ea19484a7dfab7cfd0cc40be))
+
+
+
+
+
+# [2.13.0-beta.5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.4...netlify-cms-core@2.13.0-beta.5) (2019-11-07)
+
+
+### Bug Fixes
+
+* **backend-test-repo:** show notice when test repo is in use ([#2678](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2678)) ([c1c9587](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/c1c95874f41bd2b435c39d3dea263c77eaa601eb))
+* **deps:** update dependency react-polyglot to ^0.6.0 ([#2752](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2752)) ([ab5860f](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/ab5860f58ea15b69e860164986d7e24867d01954))
+* change default open authoring scope, make it configurable ([#2821](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2821)) ([002cdd7](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/002cdd77a856bde3672e75dde6d3a2b246e1035f))
+* hide collection item overflow on hover ([#2706](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2706)) ([c54f896](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/c54f896e3965e7d737cfca24fda283ab38d07982))
+
+
+### Features
+
+* enable specifying custom open authoring commit message ([#2810](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2810)) ([2841ff9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/2841ff9ffe58afcf4dba45514a84a262ad370f1d))
+
+
+
+
+
+# [2.13.0-beta.4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.3...netlify-cms-core@2.13.0-beta.4) (2019-09-26)
+
+
+### Bug Fixes
+
+* **core:** list widget pattern validation ([#2599](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2599)) ([6765bbd](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/6765bbd))
+* **media-library:** automatically select uploaded image ([#2569](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2569)) ([9f00310](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/9f00310))
+* prevent deletion of file collection entries by default ([#2627](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2627)) ([8bdfea4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/8bdfea4))
+
+
+
+
+
+# [2.13.0-beta.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.2...netlify-cms-core@2.13.0-beta.3) (2019-09-04)
+
+
+### Bug Fixes
+
+* **core:** don't pass boolean value to string prop, use null instead ([#2609](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2609)) ([ce95a77](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/ce95a77))
+* **core:** don't pass ref to react-polyglot 'translate' function component ([#2607](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2607)) ([5b64e25](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/5b64e25))
+* **github-graphql:** use getMediaDisplayURL to load media with auth header ([#2652](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2652)) ([e674e43](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/e674e43))
+* **media-library:** no render of non-viewable files ([#2546](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2546)) ([4c5fe6a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/4c5fe6a))
+
+
+### Features
+
+* **routing:** support direct linking to entries ([#2556](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2556)) ([083a336](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/083a336))
+
+
+
+
+
+# [2.13.0-beta.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.1...netlify-cms-core@2.13.0-beta.2) (2019-08-24)
+
+**Note:** Version bump only for package netlify-cms-core
+
+
+
+
+
+# [2.13.0-beta.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.13.0-beta.0...netlify-cms-core@2.13.0-beta.1) (2019-08-24)
+
+**Note:** Version bump only for package netlify-cms-core
+
+
+
+
+
+# [2.13.0-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.12.2...netlify-cms-core@2.13.0-beta.0) (2019-07-24)
+
+
+### Features
+
+* **backend-github:** Open Authoring ([#2430](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2430)) ([edf0a3a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/edf0a3a))
+
+
+
+
+
+## [2.12.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.12.1...netlify-cms-core@2.12.2) (2019-07-24)
+
+
+### Bug Fixes
+
+* **core:** fix broken search ([#2488](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2488)) ([326ed4d](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/326ed4d))
+
+
+
+
+
+## [2.12.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.12.0...netlify-cms-core@2.12.1) (2019-06-28)
+
+
+### Bug Fixes
+
+* **core:** load more entries until viewport is filled ([#2415](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2415)) ([a02496b](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/a02496b))
+
+
+
+
+
+# [2.12.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.11.1...netlify-cms-core@2.12.0) (2019-06-26)
+
+
+### Bug Fixes
+
+* **core:** backend file system create entry ([#2401](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2401)) ([556c102](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/556c102))
+* **widget-list:** validate string values in list widget ([#2385](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2385)) ([814aa50](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/814aa50))
+
+
+### Features
+
+* **widget-relation:** support nested field references in relation widget ([#2391](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2391)) ([d6964b5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/d6964b5))
+
+
+
+
+
+## [2.11.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.11.1-beta.2...netlify-cms-core@2.11.1) (2019-06-14)
+
+**Note:** Version bump only for package netlify-cms-core
+
+
+
+
+
+## [2.11.1-beta.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.11.1-beta.1...netlify-cms-core@2.11.1-beta.2) (2019-06-14)
+
+
+### Bug Fixes
+
+* **core:** list widget default values ([#2374](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/issues/2374)) ([1806a2f](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/commit/1806a2f))
+
+
+
+
+
+## [2.11.1-beta.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.11.1-beta.0...netlify-cms-core@2.11.1-beta.1) (2019-05-15)
+
+**Note:** Version bump only for package netlify-cms-core
+
+
+
+
+
 ## [2.11.1-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-core/compare/netlify-cms-core@2.11.0...netlify-cms-core@2.11.1-beta.0) (2019-04-10)
 
 

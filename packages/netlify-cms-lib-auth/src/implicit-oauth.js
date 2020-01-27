@@ -31,7 +31,8 @@ export default class ImplicitAuthenticator {
       document.location.protocol !== 'https:' &&
       // TODO: Is insecure localhost a bad idea as well? I don't think it is, since you are not actually
       //       sending the token over the internet in this case, assuming the auth URL is secure.
-      (document.location.hostname !== 'localhost' && document.location.hostname !== '127.0.0.1')
+      document.location.hostname !== 'localhost' &&
+      document.location.hostname !== '127.0.0.1'
     ) {
       return cb(new Error('Cannot authenticate over insecure protocol!'));
     }
@@ -41,12 +42,22 @@ export default class ImplicitAuthenticator {
     authURL.searchParams.set('redirect_uri', document.location.origin + document.location.pathname);
     authURL.searchParams.set('response_type', this.responseType);
     authURL.searchParams.set('scope', options.scope);
-    // Obsolete Azure documentation claims resource is optional...
-    options.resource && authURL.searchParams.set('resource', options.resource);
-    authURL.searchParams.set('state', createNonce());
+
+    if (options.prompt != null && options.prompt != undefined) {
+      authURL.searchParams.set('prompt', options.prompt);
+    }
+
+    if (options.resource != null && options.resource != undefined) {
+      authURL.searchParams.set('resource', options.resource);
+    }
+
+    const state = JSON.stringify({ nonce: createNonce() });
+    authURL.searchParams.set('state', state);
 
     document.location.assign(authURL.href);
   }
+
+
 
   /**
    * Complete authentication if we were redirected back to from the provider.
@@ -61,7 +72,8 @@ export default class ImplicitAuthenticator {
 
     const params = Map(hashParams.entries());
 
-    const validNonce = validateNonce(params.get('state'));
+    const { nonce } = JSON.parse(params.get('state'));
+    const validNonce = validateNonce(nonce);
     if (!validNonce) {
       return cb(new Error('Invalid nonce'));
     }
@@ -69,7 +81,7 @@ export default class ImplicitAuthenticator {
     if (params.has('error')) {
       return cb(new Error(`${params.get('error')}: ${params.get('error_description')}`));
     }
-
+    
     if (params.has('access_token')) {
       const { access_token: token, ...data } = params.toJS();
       cb(null, { token, ...data });

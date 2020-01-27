@@ -32,13 +32,14 @@ const MediaLibraryCardGrid = ({
   onLoadMore,
   isPaginating,
   paginatingMessage,
+  cardDraftText,
   cardWidth,
   cardMargin,
   isPrivate,
   displayURLs,
   loadDisplayURL,
 }) => (
-  <CardGridContainer innerRef={setScrollContainerRef}>
+  <CardGridContainer ref={setScrollContainerRef}>
     <CardGrid>
       {mediaItems.map(file => (
         <MediaLibraryCard
@@ -46,12 +47,15 @@ const MediaLibraryCardGrid = ({
           isSelected={isSelectedFile(file)}
           text={file.name}
           onClick={() => onAssetClick(file)}
+          isDraft={file.draft}
+          draftText={cardDraftText}
           width={cardWidth}
           margin={cardMargin}
           isPrivate={isPrivate}
           displayURL={displayURLs.get(file.id, file.url ? Map({ url: file.url }) : Map())}
           loadDisplayURL={() => loadDisplayURL(file)}
           type={file.type}
+          isViewableImage={file.isViewableImage}
         />
       ))}
       {!canLoadMore ? null : <Waypoint onEnter={onLoadMore} />}
@@ -71,8 +75,7 @@ MediaLibraryCardGrid.propTypes = {
       key: PropTypes.string.isRequired,
       name: PropTypes.string.isRequired,
       type: PropTypes.string.isRequired,
-      url: PropTypes.string,
-      urlIsPublicPath: PropTypes.bool,
+      draft: PropTypes.bool,
     }),
   ).isRequired,
   isSelectedFile: PropTypes.func.isRequired,
@@ -81,10 +84,12 @@ MediaLibraryCardGrid.propTypes = {
   onLoadMore: PropTypes.func.isRequired,
   isPaginating: PropTypes.bool,
   paginatingMessage: PropTypes.string,
+  cardDraftText: PropTypes.string.isRequired,
   cardWidth: PropTypes.string.isRequired,
   cardMargin: PropTypes.string.isRequired,
   loadDisplayURL: PropTypes.func.isRequired,
   isPrivate: PropTypes.bool,
+  displayURLs: PropTypes.instanceOf(Map).isRequired,
 };
 
 export default MediaLibraryCardGrid;

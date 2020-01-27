@@ -3,6 +3,77 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.4.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/compare/netlify-cms-widget-list@2.4.0...netlify-cms-widget-list@2.4.1) (2020-01-07)
+
+
+### Bug Fixes
+
+* cleanup nested widget validation ([#2991](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/issues/2991)) ([e4ba4d9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/commit/e4ba4d9d749c864e594c10e0bb31b0b8c4e6e60b))
+
+
+
+
+
+# [2.4.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/compare/netlify-cms-widget-list@2.4.0-beta.0...netlify-cms-widget-list@2.4.0) (2019-12-18)
+
+**Note:** Version bump only for package netlify-cms-widget-list
+
+
+
+
+
+# [2.4.0-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/compare/netlify-cms-widget-list@2.3.5-beta.1...netlify-cms-widget-list@2.4.0-beta.0) (2019-12-16)
+
+
+### Features
+
+* Code Widget + Markdown Widget Internal Overhaul ([#2828](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/issues/2828)) ([18c579d](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/commit/18c579d0e9f0ff71ed8c52f5c66f2309259af054))
+
+
+
+
+
+## [2.3.5-beta.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/compare/netlify-cms-widget-list@2.3.5-beta.0...netlify-cms-widget-list@2.3.5-beta.1) (2019-11-07)
+
+
+### Bug Fixes
+
+* **widget-list:**  when single field value is object widget ([#2387](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/issues/2387)) ([90748ff](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/commit/90748ff4fe25f47dfc6aabd46cfc02df079bc126))
+
+
+
+
+
+## [2.3.5-beta.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/compare/netlify-cms-widget-list@2.3.4...netlify-cms-widget-list@2.3.5-beta.0) (2019-09-04)
+
+
+### Bug Fixes
+
+* pass List instead of array to onChange ([#2611](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/issues/2611)) ([a801636](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/commit/a801636))
+
+
+
+
+
+## [2.3.4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/compare/netlify-cms-widget-list@2.3.3...netlify-cms-widget-list@2.3.4) (2019-07-24)
+
+**Note:** Version bump only for package netlify-cms-widget-list
+
+
+
+
+
+## [2.3.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/compare/netlify-cms-widget-list@2.3.2...netlify-cms-widget-list@2.3.3) (2019-07-11)
+
+
+### Bug Fixes
+
+* **widget-list:** honor default values for widgets in lists ([#2395](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/issues/2395)) ([83bd5d5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/commit/83bd5d5))
+
+
+
+
+
 ## [2.3.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-widget-list/compare/netlify-cms-widget-list@2.3.2-beta.0...netlify-cms-widget-list@2.3.2) (2019-04-10)
 
 **Note:** Version bump only for package netlify-cms-widget-list

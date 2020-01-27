@@ -115,10 +115,11 @@ export const remarkToMarkdown = obj => {
     listItemIndent: '1',
 
     /**
-     * Settings to emulate the defaults from the Prosemirror editor, not
-     * necessarily optimal. Should eventually be configurable.
+     * Use asterisk for everything, it's the most versatile. Eventually using
+     * other characters should be an option.
      */
     bullet: '*',
+    emphasis: '*',
     strong: '*',
     rule: '-',
   };
@@ -135,7 +136,8 @@ export const remarkToMarkdown = obj => {
     .use(remarkToMarkdownPlugin, remarkToMarkdownPluginOpts)
     .use(remarkAllowAllText)
     .use(createRemarkShortcodeStringifier({ plugins: getEditorComponents() }))
-    .stringify(processedMdast);
+    .stringify(processedMdast)
+    .replace(/\r?/g, '');
 
   /**
    * Return markdown with trailing whitespace removed.
@@ -146,16 +148,21 @@ export const remarkToMarkdown = obj => {
 /**
  * Convert Markdown to HTML.
  */
-export const markdownToHtml = (markdown, getAsset) => {
+export const markdownToHtml = async (markdown, { getAsset, resolveWidget } = {}) => {
   const mdast = markdownToRemark(markdown);
 
-  const hast = unified()
-    .use(remarkToRehypeShortcodes, { plugins: getEditorComponents(), getAsset })
+  const hast = await unified()
+    .use(remarkToRehypeShortcodes, { plugins: getEditorComponents(), getAsset, resolveWidget })
     .use(remarkToRehype, { allowDangerousHTML: true })
-    .runSync(mdast);
+    .run(mdast);
 
   const html = unified()
-    .use(rehypeToHtml, { allowDangerousHTML: true, allowDangerousCharacters: true })
+    .use(rehypeToHtml, {
+      allowDangerousHTML: true,
+      allowDangerousCharacters: true,
+      closeSelfClosing: true,
+      entities: { useNamedReferences: true },
+    })
     .stringify(hast);
 
   return html;
@@ -188,12 +195,12 @@ export const htmlToSlate = html => {
 /**
  * Convert Markdown to Slate's Raw AST.
  */
-export const markdownToSlate = markdown => {
+export const markdownToSlate = (markdown, { voidCodeBlock } = {}) => {
   const mdast = markdownToRemark(markdown);
 
   const slateRaw = unified()
     .use(remarkWrapHtml)
-    .use(remarkToSlate)
+    .use(remarkToSlate, { voidCodeBlock })
     .runSync(mdast);
 
   return slateRaw;
@@ -208,8 +215,8 @@ export const markdownToSlate = markdown => {
  * MDAST. The conversion is manual because Unified can only operate on Unist
  * trees.
  */
-export const slateToMarkdown = raw => {
-  const mdast = slateToRemark(raw, { shortcodePlugins: getEditorComponents() });
+export const slateToMarkdown = (raw, { voidCodeBlock } = {}) => {
+  const mdast = slateToRemark(raw, { voidCodeBlock });
   const markdown = remarkToMarkdown(mdast);
   return markdown;
 };

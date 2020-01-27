@@ -19,16 +19,10 @@ To use it in your own project stored on GitHub or GitLab, follow these steps:
 
 1. Head over to the [Netlify Identity docs](https://www.netlify.com/docs/identity) and follow the steps to get started.
 2. Add the following lines to your Netlify CMS `config.yml` file:
-
-    ```yaml
-    backend:
-      name: git-gateway
-      accept_roles: #optional - accepts all users if left out
-        - admin
-        - editor
-    ```
-
-3. Optionally, you can assign roles to users in your Netlify dashboard, and then limit which roles can access the CMS by defining the `accept_roles` field as shown in the example above. Otherwise `accept_roles` can be left out, and all Netlify Identity users on your site have access.
+  ```yaml
+  backend:
+    name: git-gateway
+  ```
 
 ### Reconnect after Changing Repository Permissions
 
@@ -50,12 +44,11 @@ To enable basic GitHub authentication:
 
 1. Follow the authentication provider setup steps in the [Netlify docs](https://www.netlify.com/docs/authentication-providers/#using-an-authentication-provider).
 2. Add the following lines to your Netlify CMS `config.yml` file:
-
-    ```yaml
-    backend:
-      name: github
-      repo: owner-name/repo-name # Path to your GitHub repository
-    ```
+  ```yaml
+  backend:
+    name: github
+    repo: owner-name/repo-name # Path to your GitHub repository
+  ```
 
 ### Specifying a status for deploy previews
 The GitHub backend supports [deploy preview links](../deploy-preview-links). Netlify CMS checks the
@@ -63,12 +56,12 @@ The GitHub backend supports [deploy preview links](../deploy-preview-links). Net
 one that seems to represent a deploy preview. If you need to customize this behavior, you can
 specify which context to look for using `preview_context`:
 
-    ```yaml
-    backend:
-      name: github
-      repo: my/repo
-      preview_context: my-provider/deployment
-    ```
+```yaml
+backend:
+  name: github
+  repo: my/repo
+  preview_context: my-provider/deployment
+```
 
 The above configuration would look for the status who's `"context"` is `"my-provider/deployment"`.
 
@@ -79,7 +72,7 @@ For repositories stored on GitLab, the `gitlab` backend allows CMS users to log 
 The GitLab API allows for two types of OAuth2 flows:
 
 * [Web Application Flow](https://docs.gitlab.com/ce/api/oauth2.html#web-application-flow), which works much like the GitHub OAuth flow described above.
-* [Implicit Grant](https://docs.gitlab.com/ce/api/oauth2.html#implicit-grant), which operates _without_ the need for an authentication server.
+* [Implicit Grant](https://docs.gitlab.com/ce/api/oauth2.html#implicit-grant-flow), which operates _without_ the need for an authentication server.
 
 ### Web Application Flow with Netlify
 
@@ -91,11 +84,11 @@ To enable it:
 2. Follow the [Netlify docs](https://www.netlify.com/docs/authentication-providers/#using-an-authentication-provider) to add your new GitLab Application ID and Secret to your Netlify site dashboard.
 3. In your repository, add the following lines to your Netlify CMS `config.yml` file:
 
-    ```yaml
-    backend:
-      name: gitlab
-      repo: owner-name/repo-name # Path to your GitLab repository
-    ```
+```yaml
+backend:
+  name: gitlab
+  repo: owner-name/repo-name # Path to your GitLab repository
+```
 
 ### Client-Side Implicit Grant (GitLab)
 
@@ -146,16 +139,18 @@ To enable it:
 
 With Bitbucket's Implicit Grant, users can authenticate with Bitbucket directly from the client. To do this:
 
-1. Follow the authentication provider setup steps in the [Netlify docs](https://www.netlify.com/docs/authentication-providers/#using-an-authentication-provider), make sure you allow 'Account/Read' and 'Repository/Write'.
-2. Bitbucket gives you a **Key**. Copy this Key and enter it in your Netlify CMD `config.yml` file, along with the following settings:
+1. Follow the [Atlassian docs](https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html) to create an OAuth consumer. Make sure you allow `Account/Read` and `Repository/Write` permissions. For the **Callback URL**, enter the address where you access Netlify CMS, for example, `https://www.mysite.com/admin/`.
+2. Bitbucket gives you a **Key**. Copy this Key and enter it in your Netlify CMS `config.yml` file, along with the following settings:
 
+    ```yaml
     backend:
       name: bitbucket
       repo: owner-name/repo-name
       branch: default
       auth_type: implicit
       app_id: # The Key from your Bitbucket settings
-
+    ```
+  
 **Warning:** With Bitbucket implicit grant, the authentication is valid for 1 hour only. After that, the user has to login again, **which can lead to data loss** if the expiration occurs while content is being edited.
 
 ## Test Repo Backend
@@ -163,7 +158,7 @@ You can use the `test-repo` backend to try out Netlify CMS without connecting to
 
 To enable this backend, add the following lines to your Netlify CMS `config.yml` file:
 
-```
+```yaml
 backend:
   name: test-repo
 ```
@@ -190,7 +185,6 @@ Netlify CMS backends allow some additional fields for certain use cases. A full 
 | Field           | Default                                                        | Description                                                                                                                                          |
 | --------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `repo`          | none                                                           | **Required** for `github`, `gitlab`, and `bitbucket` backends; ignored by `git-gateway`. Follows the pattern `[org-or-username]/[repo-name]`.                                    |
-| `accept_roles`  | none                                                           | `git-gateway` only. Limits CMS access to your defined array of user roles. Omitting this field gives access to all registered users.                 |
 | `branch`        | `master`                                                       | The branch where published content is stored. All CMS commits and PRs are made to this branch.                                                       |
 | `api_root`      | `https://api.github.com` (GitHub), `https://gitlab.com/api/v4` (GitLab), or `https://api.bitbucket.org/2.0` (Bitbucket)  | The API endpoint. Only necessary in certain cases, like with GitHub Enterprise or self-hosted GitLab.                                                                      |
 | `site_domain`   | `location.hostname` (or `cms.netlify.com` when on `localhost`) | Sets the `site_id` query param sent to the API endpoint. Non-Netlify auth setups will often need to set this for local development to work properly. |
