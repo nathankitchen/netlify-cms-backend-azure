@@ -1,9 +1,7 @@
 import trimStart from 'lodash/trimStart';
 import semaphore, { Semaphore } from 'semaphore';
-import { trim } from 'lodash';
-import { stripIndent } from 'common-tags';
 import AuthenticationPage from './AuthenticationPage';
-import API from './API';
+import API, { API_NAME } from './API';
 import {
   Credentials,
   Implementation,
@@ -30,24 +28,6 @@ const MAX_CONCURRENT_DOWNLOADS = 10;
  * Keywords for inferring a status that will provide a deploy preview URL.
  */
 const PREVIEW_CONTEXT_KEYWORDS = ['deploy'];
-
-class AzureRepo {
-  org: string;
-  project: string;
-  name: string;
-
-  constructor(location?: string | null)
-  {
-    if (!location || location == undefined) {
-      throw new Error("An Azure repository must be specified in the format 'organisation/project/repo'.");
-    }
-
-    var components = location.split('/', 3);
-    this.org = components[0];
-    this.project = components[1];
-    this.name = components[2] || components[1];
-  }
-}
 
 /**
  * Check a given status context string to determine if it provides a link to a
@@ -84,7 +64,7 @@ export default class Azure implements Implementation {
     initialWorkflowStatus: string;
   };
   identityUrl: string;
-  repo: AzureRepo;
+  repo: API.AzureRepo;
   branch: string;
   apiRoot: string;
   token: string | null;
