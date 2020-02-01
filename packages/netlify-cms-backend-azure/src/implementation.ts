@@ -1,7 +1,7 @@
 import trimStart from 'lodash/trimStart';
 import semaphore, { Semaphore } from 'semaphore';
 import AuthenticationPage from './AuthenticationPage';
-import API, { API_NAME } from './API';
+import API, { API_NAME, AzureRepo } from './API';
 import {
   Credentials,
   Implementation,
@@ -18,7 +18,9 @@ import {
   asyncLock,
   AsyncLock,
   runWithLock,
-  User
+  User,
+  unpublishedEntries,
+  UnpublishedEntryMediaFile
 } from 'netlify-cms-lib-util';
 import { getBlobSHA } from 'netlify-cms-lib-util/src';
 
@@ -64,7 +66,7 @@ export default class Azure implements Implementation {
     initialWorkflowStatus: string;
   };
   identityUrl: string;
-  repo: API.AzureRepo;
+  repo: AzureRepo;
   branch: string;
   apiRoot: string;
   token: string | null;
@@ -111,23 +113,37 @@ export default class Azure implements Implementation {
     return this.authenticate(user);
   }
 
+  /**
+   * Handle authentication by creating the Azure DevOps API object, which
+   * will be used for future operations. Also load details of the current
+   * user.
+   * 
+   * @param state Oauth credentials containing implicit flow auth token.
+   */
   async authenticate(state: Credentials) {
     this.token = state.token as string;
     this.api = new API({
-      token: this.token,
+      apiRoot: this.apiRoot,
+      repo: this.repo,
       branch: this.branch,
-      org: this.repo.org,
-      project: this.repo.project,
-      repo: this.repo.name,
-      api_root: this.apiRoot,
-      squash_merges: this.squashMerges,
+      path: '/',
+      squashMerges: this.squashMerges,
       initialWorkflowStatus: this.options.initialWorkflowStatus,
-    });
+    },
+    this.token);
 
-    // TODO: get the user name/email address
-    return { name: 'unspecified', token: state.token as string };
+    // Get a JSON representation of the user object and capture the name and email
+    // address for later use on commits.
+    const user = await this.api.user();
+    this.api!.commitAuthor =  { name: user.displayName, email: user.emailAddress };
+    return { name: user.displayName, token: state.token as string, ...user };
   }
-
+  
+  /**
+   * Log the user out by forgetting their access token.
+   * TODO: *Actual* logout by redirecting to: 
+   * https://login.microsoftonline.com/{tenantId}/oauth2/logout?client_id={clientId}&post_logout_redirect_uri={baseUrl}
+   */
   logout() {
     this.token = null;
     return;
@@ -138,6 +154,7 @@ export default class Azure implements Implementation {
   }
 
   entriesByFolder(collection: string, extension: string, depth: number) {
+    console.log('entriesByFolder');
     return this.api!
       .listFiles(collection)
       .then(files => { // Azure - de-activate filter for debug
@@ -190,7 +207,7 @@ export default class Azure implements Implementation {
   getEntry(path: string) {
     return this.api!.readFile(path).then(data => ({
       file: { path },
-      data,
+      data: data as string
     }));
   }
 
@@ -269,64 +286,66 @@ export default class Azure implements Implementation {
     return this.api!.deleteFile(path, commitMessage);
   }
 
-  unpublishedEntries() {
-    return this.api!
-      .listUnpublishedBranches()
-      .then(branches => {
-        const sem = semaphore(MAX_CONCURRENT_DOWNLOADS);
-        const promises : any[] = [];
-        branches.map((branch: any) => {
-          promises.push(
-            new Promise(resolve => {
-              const slug = branch.ref.split('refs/heads/cms/').pop();
-              return sem.take(() =>
-                this.api!
-                  .readUnpublishedBranchFile(slug)
-                  .then((data: any) => {
-                    if (data === null || data === undefined) {
-                      resolve(null);
-                      sem.leave();
-                    } else {
-                      const path = data.metaData.objects.entry.path;
-                      resolve({
-                        slug,
-                        file: { path },
-                        data: data.fileData,
-                        metaData: data.metaData,
-                        isModification: data.isModification,
-                      });
-                      sem.leave();
-                    }
-                  })
-                  .catch(() => {
-                    sem.leave();
-                    resolve(null);
-                  }),
-              );
-            }),
-          );
-        });
-        return Promise.all(promises);
-      })
-      .catch(error => {
-        if (error.message === 'Not Found') {
-          return Promise.resolve([]);
-        }
-        return error;
-      });
-  }
+  loadMediaFile(branch: string, file: UnpublishedEntryMediaFile) {
+    const readFile = (
+      path: string,
+      id: string | null | undefined,
+      { parseText }: { parseText: boolean },
+    ) => this.api!.readFile(path, id, { branch, parseText });
 
-  unpublishedEntry(collection: string, slug: string) {
-    return this.api!.readUnpublishedBranchFile(slug).then((data: any) => {
-      if (!data) return null;
+    return getMediaAsBlob(file.path, null, readFile).then(blob => {
+      const name = basename(file.path);
+      const fileObj = new File([blob], name);
       return {
-        slug,
-        file: { path: data.metaData.objects.entry.path },
-        data: data.fileData,
-        metaData: data.metaData,
-        isModification: data.isModification,
+        id: file.path,
+        displayURL: URL.createObjectURL(fileObj),
+        path: file.path,
+        name,
+        size: fileObj.size,
+        file: fileObj,
       };
     });
+  }
+
+  async loadEntryMediaFiles(branch: string, files: UnpublishedEntryMediaFile[]) {
+    const mediaFiles = await Promise.all(files.map(file => this.loadMediaFile(branch, file)));
+
+    return mediaFiles;
+  }
+
+  async unpublishedEntries() {
+    const listEntriesKeys = () =>
+      this.api!.listUnpublishedBranches().then(branches =>
+        branches.map((branch: any) => this.api!.contentKeyFromBranch(branch)),
+      );
+
+    const readUnpublishedBranchFile = (contentKey: string) =>
+      this.api!.readUnpublishedBranchFile(contentKey);
+
+    return unpublishedEntries(listEntriesKeys, readUnpublishedBranchFile, API_NAME);
+  }
+
+  async unpublishedEntry(  collection: string,
+    slug: string,
+    {
+      loadEntryMediaFiles = (branch: string, files: UnpublishedEntryMediaFile[]) =>
+        this.loadEntryMediaFiles(branch, files),
+    } = {},
+  ) {
+    const contentKey = this.api!.generateContentKey(collection, slug);
+    const data = await this.api!.readUnpublishedBranchFile(contentKey);
+    const mediaFiles = await loadEntryMediaFiles(
+      data.metaData.branch,
+      data.metaData.objects.entry.mediaFiles,
+    );
+    return {
+      slug,
+      file: { path: data.metaData.objects.entry.path, id: null },
+      data: data.fileData as string,
+      metaData: data.metaData,
+      mediaFiles,
+      isModification: data.isModification,
+    };
   }
 
   updateUnpublishedEntryStatus(collection: string, slug: string, newStatus: string) {
