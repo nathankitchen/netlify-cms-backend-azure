@@ -1,4 +1,4 @@
-import trimStart from 'lodash/trimStart';
+import { trimStart, trim } from 'lodash';
 import semaphore, { Semaphore } from 'semaphore';
 import AuthenticationPage from './AuthenticationPage';
 import API, { API_NAME, AzureRepo } from './API';
@@ -100,7 +100,7 @@ export default class Azure implements Implementation {
     this.apiRoot = config.backend.api_root || 'https://dev.azure.com';
     this.token = '';
     this.squashMerges = config.backend.squash_merges || false;
-    this.mediaFolder = config.media_folder;
+    this.mediaFolder = trim(config.media_folder, '/');
     this.previewContext = config.backend.preview_context || '';
     this.lock = asyncLock();
   }
@@ -177,7 +177,6 @@ export default class Azure implements Implementation {
     const sem = semaphore(MAX_CONCURRENT_DOWNLOADS);
     const promises : any[] = [];
     files.forEach((file: any) => {
-      console.log('** DEBUG fetchFiles ... file.url: ' + file.url );
       file.sha = file.objectId; // due to different element naming in Azure
       file.path = file.relativePath;
       promises.push(
@@ -213,15 +212,17 @@ export default class Azure implements Implementation {
 
   getMedia() {
     return this.api!.listFiles(this.mediaFolder).then(files =>
-      // files.map(({ sha, name, size, download_url, path }) => {
-      files.map(({ objectId, relativePath, size, url }) => { // Azure
-          const sha = objectId;
-	      	const name = relativePath;
-      		const path = 'no-path-here';
-          const url2 = new URL(url);
+      
+      files.map(({ objectId, relativePath, size, url }) => {
+        const sha = objectId;
+        const name = relativePath;
+        const path = `${this.mediaFolder}/${relativePath}`;
+        const url2 = new URL(url);
+
         if (url2.pathname.match(/.svg$/)) {
-          url2.search += (url2.search.slice(1) === '' ? '?' : '&') + 'sanitize=true';
+          //url2.search += (url2.search.slice(1) === '' ? '?' : '&') + 'sanitize=true';
         }
+
         return { id: sha, name, size, displayURL: url2.href, path };
       }),
     );
@@ -259,8 +260,6 @@ export default class Azure implements Implementation {
   }
 
   async persistMedia(mediaFile: AssetProxy, options: PersistOptions) {
-
-
     const fileObj = mediaFile.fileObj as File;
 
     const [id] = await Promise.all([

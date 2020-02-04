@@ -1,5 +1,5 @@
 import { Base64 } from 'js-base64';
-import { uniq, initial, last, get, find, flow, some, partial, result, trim } from 'lodash';
+import { uniq, initial, last, get, first, find, flow, some, partial, result, trim } from 'lodash';
 import {
   localForage,
   APIError,
@@ -14,18 +14,7 @@ import {
   generateContentKey,
   isCMSLabel
 } from 'netlify-cms-lib-util';
-
-
 export const API_NAME = 'Azure DevOps';
-
-// from here you can navigate trees, looking for blobs
-// https://dev.azure.com/{tenant}/{project}/_apis/git/repositories/{repo}/items?path=/&version={branch}&api-version=5.0
-
-// or to specify known folder
-// https://dev.azure.com/{tenant}/{project}/_apis/git/repositories/{repo}}/items?path={path}&version=[branch]&api-version=5.0
-
-// or to specify recursionLevel (WTF that does all options return same json, no recusion into scopePath, on my repo)
-// https://dev.azure.com/{tenant}/{project}/_apis/git/repositories/{repo}}/items?scopePath=/content&recursionLevel=oneLevel&version=[branch]&api-version=5.0
 
 export class AzureRepo {
   org: string;
@@ -54,6 +43,137 @@ export interface AzureUser {
 export interface AzureCommitAuthor {
   name: string;
   email: string;
+}
+
+enum AzureCommitChangeType {
+  ADD = 'add',
+  DELETE = 'delete',
+  RENAME = 'rename',
+  EDIT = 'edit',
+}
+
+enum AzureCommitContentType {
+  RAW = 'rawtext',
+  BASE64 = 'base64encoded'
+}
+
+class AzureCommit {
+  comment: string;
+  changes: AzureChangeList;
+
+  constructor(comment: string = 'Default commit comment')
+  {
+    this.comment = comment;
+    this.changes = new AzureChangeList();
+  }
+};
+
+/**
+ * Change list provides an easy way to create a range of different changes on a single
+ * commit. Rename serves as move.
+ */
+class AzureChangeList extends Array<AzureCommitChange> {
+  
+  constructor() {
+    super();
+  }
+
+  addBase64(path: string, base64data: string) {
+    this.push(new AzureCommitAddChange(path, base64data, AzureCommitContentType.BASE64));
+  }
+
+  addRawText(path: string, text: string) {
+    this.push(new AzureCommitAddChange(path, text, AzureCommitContentType.RAW));
+  }
+
+  delete(path: string) {
+    this.push(new AzureCommitChange(AzureCommitChangeType.DELETE, path));
+  }
+
+  editBase64(path: string, base64data: string) {
+    this.push(new AzureCommitEditChange(path, base64data, AzureCommitContentType.BASE64));
+  }
+
+  rename(source: string, destination: string) {
+    this.push(new AzureCommitRenameChange(source, destination));
+  }
+};
+
+type AzureRefUpdate = {
+  name: string;
+  oldObjectId: string;
+};
+
+type AzureRef = {
+  name: string;
+  objectId: string;
+};
+
+
+class AzureCommitChange {
+  changeType: AzureCommitChangeType;
+  item: AzureCommitChangeItem;
+
+  constructor(changeType: AzureCommitChangeType, path: string) {
+    this.changeType = changeType;
+    this.item = new AzureCommitChangeItem(path);
+  }
+};
+
+class AzureCommitAddChange extends AzureCommitChange {
+  newContent: AzureChangeContent;
+
+  constructor(path: string, content: string, type: AzureCommitContentType) {
+    super(AzureCommitChangeType.ADD, path);
+    this.newContent = new AzureChangeContent(content, type);
+  }
+};
+
+class AzureCommitEditChange extends AzureCommitChange {
+  newContent: AzureChangeContent;
+
+  constructor(path: string, content: string, type: AzureCommitContentType) {
+    super(AzureCommitChangeType.EDIT, path);
+    this.newContent = new AzureChangeContent(content, type);
+  }
+};
+
+class AzureCommitRenameChange extends AzureCommitChange {
+  sourceServerItem: string;
+
+  constructor(source: string, destination: string) {
+    super(AzureCommitChangeType.RENAME, destination);
+    this.sourceServerItem = source;
+  }
+};
+
+class AzureCommitChangeItem {
+  path: string;
+
+  constructor(path: string) {
+    this.path = path;
+  }
+};
+
+class AzureChangeContent {
+  content: string;
+  contentType: AzureCommitContentType;
+
+  constructor(content: string, type: AzureCommitContentType)
+  {
+    this.content = content;
+    this.contentType = type;
+  }
+};
+
+class AzurePush {
+  refUpdates: AzureRefUpdate[];
+  commits: AzureCommit[];
+
+  constructor(ref: AzureRef) {
+    this.refUpdates = [ { name: ref.name, oldObjectId: ref.objectId } ];
+    this.commits = [];
+  }
 }
 
 export interface AzureApiConfig {
@@ -92,21 +212,18 @@ export default class API {
     unsentRequest.withHeaders(this.token ? { Authorization: `Bearer ${this.token}` } : {}, req);
 
   withAzureFeatures = (req: ApiRequest) => {
-    console.log('API.withAzureFeatures');
-    unsentRequest.withHeaders({
+    req = unsentRequest.withHeaders({
         'Content-Type': 'application/json; charset=utf-8',
         'Origin': '*'
       }, req);
-    unsentRequest.withParams({
+    req = unsentRequest.withParams({
         'api-version': this.apiVersion
       }, req);
     return req;
   };
 
-  withLogging = (req: ApiRequest) => { 
-    console.log(JSON.stringify(req)); 
-    
-    return req as ApiRequest;
+  withLogging = (req: ApiRequest) => {
+    return req;
   }
 
   buildRequest = (req: ApiRequest) =>
@@ -142,58 +259,12 @@ export default class API {
   requestJSON = (req: ApiRequest) => this.request(req).then(this.responseToJSON) as Promise<any>;
   requestText = (req: ApiRequest) => this.request(req).then(this.responseToText) as Promise<string>;
 
-  user= (): Promise<AzureUser>  => { 
-    console.log("API.user");
+  /**
+   * Get the name of the current user by hitting the VS /me endpoint. 
+   */
+  user = (): Promise<AzureUser>  => {
     return this.requestJSON({ url: 'https://app.vssps.visualstudio.com/_apis/profile/profiles/me'}) as Promise<AzureUser>;
   }
-
-  //urlFor(path: string, options: any) {
-  //  const cacheBuster = new Date().getTime();
-  //  const params = [`ts=${cacheBuster}&api-version=${this.apiVersion}`]; // added Azure specific api-version
-  //  let pathext;
-  //  if (options.params) {
-  //    for (const key in options.params) {
-  //      params.push(`${key}=${encodeURIComponent(options.params[key])}`);
-  //    }
-  //  }
-  //  if (params.length) {
-  //    pathext = `${params.join('&')}`;
-  //  }
-  //  if (path.match(/^https/)) { // Azure specific - path may already be a fully qualified URL 
-  //    path +=  `?${pathext}`; // assume we have already one divider '?'
-  //  } else {
-  //    path = this.apiRoot + path +  `?${pathext}`;
-  //  }
-  //  console.log('** DEBUG azure urlFor  -- path = ' + path + ' -- options: ' + JSON.stringify( options )  );
-  //  return path;
-  //  // return this.api_root + path;
-  //  }
-
-  //request(path: string, options: any = {}) {
-  //  const headers = this.requestHeaders(options.headers || {});
-  //  console.log('**DEBUG entering req path: ' + path +   ' -- options: ' + JSON.stringify( options ) );
-  //  const url = this.urlFor(path, options);
-	//  options.mode = 'cors'; // Azure ensure headers are set to get suitable response
-  //  let responseStatus: number = 0;
-  //  return fetch(url, { ...options, headers })
-  //    .then(response => {
-  //      responseStatus = response.status;
-  //      const contentType = response.headers.get('Content-Type');
-  //      if (contentType && contentType.match(/json/)) {
-  //        return this.parseJsonResponse(response);
-  //      }
-  //      const text = response.text();
-  //      console.log('**DEBUG hm, req response was text not json: ' + JSON.stringify( text ) );
-  //      if (!response.ok) {
-  //        return Promise.reject(text);
-  //      }
-  //      return text;
-  //    })
-  //    .catch(error => {
-  //      console.log('**DEBUG: request catch ' + url + error.message + responseStatus);
-  //      throw new APIError(error.message, responseStatus, 'Azure');
-  //    });
-  //}
 
   generateBranchName(basename: string) {
     return `${CMS_BRANCH_PREFIX}${basename}`;
@@ -226,16 +297,23 @@ export default class API {
     });
   }
 
+  /**
+   * Reads a single file from an Azure DevOps Git repository, using the 'items' endpoint,
+   * with the path to the desired file. Parses the response whether it's a string or blob,
+   * and then passes the retrieval function to the central readFile cache.
+   * @param path The repo-relative path of the file to read.
+   * @param sha  Null. Not used by the Azure implementation.
+   * @param opts Override options.
+   */
   readFile = async (
     path: string,
     sha?: string | null,
     { parseText = true, branch = this.branch } = {},
   ): Promise<string | Blob> => {
     const fetchContent = async () => {
-      console.log(path);
-      const content = await this.requestJSON({
-        url: path,
-        params: { version: branch },
+      const content = await this.request({
+        url: `${this.endpointUrl}/items/`, 
+        params: { version: branch, path: path },
         cache: 'no-store',
       }).then<Blob | string>(parseText ? this.responseToText : this.responseToBlob);
       return content;
@@ -245,80 +323,74 @@ export default class API {
     return content;
   };
 
-  //readFile(path: string, sha: string, branch = this.branch) {
-  //  if (sha) {
-  //    return this.getBlob(sha, path); // Azure if we have ObjId = sha then we usually already have an URL, too
-  //  } else {
-  //    return this.requestJSON({
-  //      url: `${this.endpointUrl}/items/${path}`,
-  //      headers: { Accept: 'application/vnd.github.VERSION.raw' },
-  //      params: { version: branch },
-  //      cache: 'no-store',
-  //    }).catch(error => { // Azure - not sure if we will ever get beyond this point
-  //      if (hasIn(error, 'message.errors') && find(error.message.errors, { code: 'too_large' })) {
-  //        const dir = path
-  //          .split('/')
-  //          .slice(0, -1)
-  //          .join('/');
-  //        return this.listFiles(dir)
-  //          .then(files => files.find(file => file.path === path))
-  //          .then(file => this.getBlob(file.sha, file.path));
-  //      }
-  //      throw error;
-  //    });
-  //  }
-  //}
-
-  //getBlob(sha: string, url: string) { // In Azure we don't have the ObjectId = sha handy always - caution !
-    // Azure - disable caching as long as we cannot ensure a valid ObjId = sha always
-    // return localForage.getItem(`gh.${sha}`).then(cached => {
-    //  if (cached) {
-    //    return cached;
-    //  }
-
-      // return this.request(`${this.repoURL}/git/blobs/${sha}`, {
-    //    return this.request(`${url}`, { // Azure
-    //      headers: { Accept: 'application/vnd.github.VERSION.raw' },
-    //  }).then(result => {
-    //    localForage.setItem(`gh.${sha}`, result);
-    //    return result;
-    //  });
-    // });
-  //}
-
   listFiles = async (path: string) => {
-    // return this.request(`${this.repoURL}/contents/${path.replace(/\/$/, '')}`, {
     return await this.requestJSON({
       url: `${this.endpointUrl}/items/`, 
       params: { version: this.branch, path: path }, // Azure
     }).then(response => {
-      console.log('**DEBUG: getTreeId -- returnObj: ' + JSON.stringify(response) )
-        return response._links.tree.href 
+        // Get the real URL of the tree data and hit it.
+        return response._links.tree.href;
       })
       .then ( url => {
-         console.log('**DEBUG: list files  -- url: ' + url )
         return this.requestJSON(`${url}`);
       })
       .then(response => {
         const files = ( response.treeEntries || [ ]);
-        console.log('** DEBUG - treeEntries ' + JSON.stringify(files) );
         if (!Array.isArray(files)) {
           throw new Error(`Cannot list files, path ${path} is not a directory but a ${files.type}`);
         }
+        files.forEach((f: any) => { f.relativePath = `${path}/${f.relativePath}`; });
+        console.log(JSON.stringify(files));
         return files;
       })
       .then(files => files.filter(file => file.gitObjectType === 'blob'));    // Azure
   }
 
-  uploadAndCommit(
-    items: any,
-    commitParams: any) {
+
+  async getRef(branch: string = this.branch): Promise<AzureRef> {
     return this.requestJSON({
-      url: `${this.endpointUrl}/repository/commits`,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: 'JSON.stringify(commitParams)',
+      url: `${this.endpointUrl}/refs`,
+      params: {
+        '$top': "1", '$filter': branch } // Azure hardwired to get expected response format   
+    }).then((refs: any) => {
+      return first(refs.value.filter((b: any)=> b.name == 'refs/heads/' + branch)) as AzureRef;
     });
+  }
+
+  uploadAndCommit(items: any, comment: string = 'Creating new files') {
+      return this.getRef().then((ref: AzureRef) => {
+        
+        var commit = new AzureCommit(comment);
+
+        items.forEach((i: any) => {
+
+          console.log("Upload and commit: " + i.path);
+
+          switch (i.action as AzureCommitChangeType) {
+            case AzureCommitChangeType.ADD:
+              commit.changes.addBase64(i.path, i.base64Content);
+              break;
+            case AzureCommitChangeType.EDIT:
+                commit.changes.editBase64(i.path, i.base64Content);
+                break;
+          }
+          
+        });
+
+        // Only bother with a request if we're going to make changes.
+        if (commit.changes.length > 0) {
+          var push = new AzurePush(ref);
+          push.commits.push(commit);
+              
+          return this.requestJSON({
+            url: `${this.endpointUrl}/pushes`,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(push)
+          });
+        }
+    });
+
   }
 
   async readUnpublishedBranchFile(contentKey: string) {
@@ -405,7 +477,7 @@ export default class API {
           this.isFileExists(file.path, branch),
         ]);
         return {
-          action: fileExists ? 'CommitAction.UPDATE' : 'CommitAction.CREATE',
+          action: fileExists ? AzureCommitChangeType.EDIT : AzureCommitChangeType.EDIT,
           base64Content,
           path: '/' + trim(file.path, '/'),
         };
@@ -420,39 +492,25 @@ export default class API {
       return this.editorialWorkflowGit(files, entry as Entry, null, options);
     } else {
       const items = await this.getCommitItems(files, this.branch);
-      return this.uploadAndCommit(items, {
-        commitMessage: options.commitMessage,
-      });
+      return this.uploadAndCommit(items, options.commitMessage);
     }
   }
 
-  deleteFile(path: string, message: string, branch = this.branch) {
-    const pathArray = path.split('/');
-    const filename = last(pathArray);
-    const directory = initial(pathArray).join('/');
-    const fileDataPath = encodeURIComponent(directory);
-    const fileDataURL = `${this.endpointUrl}/git/trees/${branch}:${fileDataPath}`;
-    const fileURL = `${this.endpointUrl}/contents/${path}`;
+  deleteFile(path: string, comment: string, branch = this.branch) {
+    return this.getRef().then((ref: AzureRef) => {
 
-    /**
-     * We need to request the tree first to get the SHA. We use extended SHA-1
-     * syntax (<rev>:<path>) to get a blob from a tree without having to recurse
-     * through the tree.
-     */
-    return this.requestJSON({
-      url: fileDataURL,
-      headers: { cache: 'no-store' }
-    }).then(resp => {
-      const { sha } = resp.tree.find((file : any) => file.path === filename);
+      var commit = new AzureCommit(comment);
+      commit.changes.delete(path);
+      
+      var push = new AzurePush(ref);
+      push.commits.push(commit);
 
       return this.requestJSON({
-        url: fileURL,
-        method: 'DELETE',
-        params: {
-          author: this.commitAuthor ? this.commitAuthor.email: 'Unknown',
-          date: new Date().toISOString(),
-          sha, message, branch
-        }});
+          url: `${this.endpointUrl}/pushes`,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify(push)
+      });
     });
   }
 
@@ -531,21 +589,19 @@ export default class API {
   //}
 
   async isFileExists(path: string, branch: string) {
-    const fileExists = await this.requestText({
-      method: 'HEAD',
-      url: `${this.endpointUrl}/repository/files/${encodeURIComponent(path)}`,
-      params: { ref: branch },
+    console.log("Does it exist? " + path);
+    return await this.request({
+      url: `${this.endpointUrl}/items/`,
+      params: { version: branch, path: path },
       cache: 'no-store',
     })
-      .then(() => true)
+      .then(() => { return true; })
       .catch(error => {
         if (error instanceof APIError && error.status === 404) {
           return false;
         }
         throw error;
       });
-
-    return fileExists;
   }
 
   editorialWorkflowGit(fileTree: any, entry: any, filesList: any, options: any) {
@@ -943,9 +999,8 @@ export default class API {
     return subTreePromise.then((subTree: any) => find(subTree.tree, { path: filename }));
   }
 
-  toBase64(str: string) {
-    return Promise.resolve(Base64.encode(str));
-  }
+  toBase64 = (str: string) => Promise.resolve(Base64.encode(str));
+  fromBase64 = (str: string) => Base64.decode(str);
 
   uploadBlob(item: any) {
     const content = result(item, 'toBase64', partial(this.toBase64, item.raw));
