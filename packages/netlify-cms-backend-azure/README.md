@@ -26,34 +26,69 @@ dev.azure.com in combination with the forever-free services from portal.azure.co
 
 
 ## dev-test/config.yml changes needed to connect to Azure DevOps
+To connect to Azure DevOps you need to modify your `config.yml` backend to target your Azure DevOps repo as follows:
 
 ```
 backend:
   name: azure
-  branch: branch-name
-  project: organization-name/project-name
-  repo: repo-name
-  tenant_id: tenant-id
-  app_id: registered-app-id  
+  branch: master
+  repo: {org}/{project}/{repo}
+  identity_url: https://login.microsoftonline.com/{tenantId}
+  app_id: {appId}
   
 site_url: "http://localhost:8080"
 ```
-* name - just the string 'azure' to indicate the backend package and API
-* branch - usually 'master' - don't change unless you know exactly what you are doing
-* project - needs to be adapted from your setting, e.g. if your instance is https://dev.azure.com/coolcompany and within you have a project 'mytechblog' then it is 'coolcompany/mytechblog'
-* repo - is usually also 'mytechblog' as by default, the repo has the same name as the project - but it is possible to have multiple repos in one project - in this case you might have a different name here 
-* tenant_id and app_id - follow the instructions below to create an app in AAD, then add these parameters here
 
+| setting      | description | example |
+|--------------|-----------------------------------------------------------------------------|----------------------------------------|
+| name         | Fixed: must be `azure`                                                      | `azure`                                |
+| branch       | Usually `master` - don't change unless you know exactly what you are doing! | `master`                               |
+| repo         | Comprising your Azure DevOps organisation name, project, and repo           | `acme/project/jekyll`                  |
+| identity_url | OAuth identity endpoint: standard Microsoft, plus tenant ID                 | `https://login.microsoftonline.com/e38b796f-d5df-4529-82c3-345c0b37e406` |
+| app_id       | Follow instructions below to create an app, then add its client ID here     | `e38b796f-d5df-4529-82c3-345c0b37e406` |
 
-## general preparations
+## Development setup
+Note that these instruction are not specific to Azure DevOps.
 
-not specific to this adaption of netlify-cms to dev.azure.com
+  1. Make sure you have a recent version of node/npm (I used 10.14.2)
+  2. Install 'yarn'
+  3. Run `yarn` from the root of the repository to install dependencies
+  4. Run `yarn run develop` to start a dev/test instance of NetlifyCMS
 
-make sure you have a recent version of node/npm (I used 10.14.2) and that 'yarn' and 'lerna' are installed, too
+## Prepare for testing / debugging / dev for dev.azure.com
 
-## prepare for testing / debugging / dev for dev.azure.com
+### Create an app in AAD (Azure Active Directory)
 
-### create an app in AAD (Azure Active Directory)
+#### Manual version
+  1. Sign into https://portal.azure.com
+  2. Search for "Azure Active Directory" (also known as AAD)
+      1. Double check that you see the tenant associated with your Azure DevOps instance!
+      2. If not, use the directory switcher in the top bar to go to the right directory.
+  3. In the Azure AD blade, find "App Registrations".
+  4. Click "New registration"
+  5. Enter a display name, for example: `Netlify CMS for Azure DevOps`
+  6. Choose "Single tenant" mode, (multi-tenant hasn't been tested/here be dragons)
+  7. Enter your redirect URL, e.g. http://localhost:8080
+  8. Press "OK" to create the app
+  9. Go to "API permissions"
+      1. Click "Add a permission"
+      2. Click "Azure DevOps"
+      3. Under "Delegated permissions", check "user_impersonation"
+      4. Click "Add permissions"
+  10. To save users having to consent, hit "Grant admin consent for (your tenant)"
+  11. Go to "Authentication"
+      1. Under "Web", find the "Implicit grant" section
+      2. Check "Access tokens" and "Identity tokens"
+      3. Enter "https://dev.azure.com/(yourorgname) in the redirect URIs list (*Note to self: check this is necessary!*)
+      4. Click "Save"
+  12. Go to "Overview"
+      1. Note the "Application (client) ID" for the app_id config.yml setting.
+      2. Note the "Directory (tenant) ID" to append to the identity_url setting.
+
+When the dev environment starts, hit "Login" and sign in with an Azure AD account that has access to the Azure DevOps repo!
+
+#### Script version (not validated!)
+*While it is possible to automate creation of the service principal as described below, it's usually easier to just do it in the portal. Also, the below scripts haven't been double checked to validate that they achieve the same as the instructions above*
 
 In case you have 'Azure CLT' (Command Line Tools) installed you should have an 'az' command in the commandline:
 
@@ -70,7 +105,6 @@ az login
 ```
 require to enter your Azure username and password - same that you use for https://portal.azure.com and https://dev.azure.com - both have forever free options as of this writing).
 
-### create a service principal for your app
 ```
 az ad sp create-for-rbac --name somename --password somepassword 
 
