@@ -15,7 +15,8 @@ import {
   parseContentKey,
   labelToStatus,
   isCMSLabel,
-  EditorialWorkflowError
+  EditorialWorkflowError,
+  statusToLabel
 } from 'netlify-cms-lib-util';
 export const API_NAME = 'Azure DevOps';
 
@@ -179,6 +180,16 @@ class AzurePush {
   }
 }
 
+class AzurePRLabel {
+  id: string;
+  name: string;
+
+  constructor(id: string, name: string) {
+    this.id = id;
+    this.name = name;
+  }
+}
+
 export interface AzureApiConfig {
   apiRoot: string;
   repo: AzureRepo;
@@ -219,15 +230,13 @@ export default class API {
         'Content-Type': 'application/json; charset=utf-8',
         'Origin': '*'
       }, req);
-    req = unsentRequest.withParams({
+
+    req = unsentRequest.withDefaultParams({
         'api-version': this.apiVersion
       }, req);
+
     return req;
   };
-
-  withLogging = (req: ApiRequest) => {
-    return req;
-  }
 
   buildRequest = (req: ApiRequest) =>
     flow([
@@ -240,7 +249,6 @@ export default class API {
   request = async (req: ApiRequest): Promise<Response> =>
     flow([
       this.buildRequest,
-      this.withLogging,
       unsentRequest.performRequest,
       p => p.catch((err: Error) => Promise.reject(new APIError(err.message, null, API_NAME))),
     ])(req);
@@ -258,12 +266,18 @@ export default class API {
   responseToBlob = responseParser({ format: 'blob', apiName: API_NAME });
   responseToText = responseParser({ format: 'text', apiName: API_NAME });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requestJSON = (req: ApiRequest) => this.request(req).then(this.responseToJSON) as Promise<any>;
   requestText = (req: ApiRequest) => this.request(req).then(this.responseToText) as Promise<string>;
 
+  toBase64 = (str: string) => Promise.resolve(Base64.encode(str));
+  fromBase64 = (str: string) => Base64.decode(str);
+
+  branchToRef = (branch: string): string => `refs/heads/${branch}`;
+  refToBranch = (ref: string): string => ref.substr(11);
+
   /**
-   * Get the name of the current user by hitting the VS /me endpoint. 
+   * Get the name of the current user by hitting the VS /me endpoint to
+   * return an AzureUser object. 
    */
   user = (): Promise<AzureUser>  => {
     return this.requestJSON({ url: 'https://app.vssps.visualstudio.com/_apis/profile/profiles/me'}) as Promise<AzureUser>;
@@ -280,19 +294,32 @@ export default class API {
 console.log("Merge request: " + JSON.stringify(mergeRequest));
 
     const diff = await this.getDifferences(mergeRequest.sourceRefName);
-    const path = diff.find(((d: any) => d.old_path.includes(slug))?.old_path as string);
+
+    console.log("Pre-filter for slug " + slug);
+    console.log("Differences " + JSON.stringify(diff));
+    const path1 = diff.find((d: any) => d.item.path.includes(slug));
+console.log(path1);
+    const path = path1?.item.path as string;
+    console.log(path);
     const mediaFiles = await Promise.all(
       diff
-        .filter(d => d.old_path !== path)
-        .map(async d => {
-          const path = d.new_path;
-          const id = await this.getFileId(path, branch);
+        .filter((d: any) => !d.item.isFolder)
+        .map(async (d: any) => {
+          const path = d.item.path;
+          const id = d.item.objectId;
           return { path, id };
         }),
     );
-    const label = mergeRequest.labels.find(isCMSLabel) as string;
-    const status = labelToStatus(label);
-    return { branch, collection, slug, path, status, mediaFiles };
+
+    const prLabel = mergeRequest.labels?.find((l : AzurePRLabel) => isCMSLabel(l.name));
+    const labelText = prLabel ? prLabel.name : statusToLabel("draft");
+
+    console.log("label text: " + labelText);
+    const status = labelToStatus(labelText);
+    const retval = { branch, collection, slug, path, status, mediaFiles };
+
+    console.log(`Merge data: ${JSON.stringify(retval)}`);
+    return retval;
   }
 
   /**
@@ -308,6 +335,7 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
     sha?: string | null,
     { parseText = true, branch = this.branch } = {},
   ): Promise<string | Blob> => {
+    console.log("reading file for: " + path);
     const fetchContent = async () => {
       console.log(path);
       const content = await this.request({
@@ -322,16 +350,20 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
     return content;
   };
 
-  listFiles = async (path: string) => {
+  listFiles = async (path: string, recursive: boolean = false) => {
     return await this.requestJSON({
       url: `${this.endpointUrl}/items/`, 
-      params: { version: this.branch, path: path }, // Azure
+      params: { 
+        version: this.branch, 
+        path: path,
+        recursionLevel: (recursive) ? "full" : "none"
+      }, // Azure
     }).then(response => {
         // Get the real URL of the tree data and hit it.
         return response._links.tree.href;
       })
       .then ( url => {
-        return this.requestJSON(`${url}`);
+        return this.requestJSON(url);
       })
       .then(response => {
         const files = ( response.treeEntries || [ ]);
@@ -351,18 +383,22 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
     return this.requestJSON({
       url: `${this.endpointUrl}/refs`,
       params: {
-        '$top': "1", '$filter': branch } // Azure hardwired to get expected response format   
+        '$top': "1", 
+        'filter': 'heads/' + branch 
+      } 
     }).then((refs: any) => {
-      return first(refs.value.filter((b: any)=> b.name == 'refs/heads/' + branch)) as AzureRef;
+      return first(refs.value.filter((b: any) => b.name == this.branchToRef(branch))) as AzureRef;
     });
   }
+
+
 
   uploadAndCommit(items: any, comment: string = 'Creating new files', branch: string = this.branch) {
       return this.getRef(this.branch).then((ref: AzureRef) => {
         
-        ref = ref || { name: 'refs/heads/' + branch, objectId: "0000000000000000000000000000000000000000"};
+        ref = ref || { name: this.branchToRef(branch), objectId: "0000000000000000000000000000000000000000"};
         
-        ref.name = `refs/heads/${branch}`;
+        ref.name = this.branchToRef(branch);
         
         var commit = new AzureCommit(comment);
 
@@ -375,10 +411,15 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
               commit.changes.addBase64(i.path, i.base64Content);
               break;
             case AzureCommitChangeType.EDIT:
-                commit.changes.editBase64(i.path, i.base64Content);
-                break;
+              commit.changes.editBase64(i.path, i.base64Content);
+              break;
+            case AzureCommitChangeType.DELETE:
+              commit.changes.delete(i.path);
+              break;
+            case AzureCommitChangeType.RENAME:
+              commit.changes.rename(i.path, i.path);
+              break;
           }
-          
         });
 
         // Only bother with a request if we're going to make changes.
@@ -386,7 +427,6 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
           var push = new AzurePush(ref);
           push.commits.push(commit);
               
-
           console.log(JSON.stringify(push));
           return this.requestJSON({
             url: `${this.endpointUrl}/pushes`,
@@ -401,11 +441,11 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
 
   async readUnpublishedBranchFile(contentKey: string) {
     console.log(`API.readUnpublishedBranchFile(contentKey: "${contentKey}")`);
-    const { branch, collection, slug, path, status, mediaFiles } = await this.retrieveMetadata(contentKey).then(data =>
-      data.objects.entry.path ? data : Promise.reject(null),
-    );
+    const { branch, collection, slug, path, status, mediaFiles } = await this.retrieveMetadata(contentKey);
+
 
     const [fileData, isModification] = await Promise.all([
+      
       this.readFile(path, null, { branch }) as Promise<string>,
       this.isFileExists(path, this.branch),
     ]);
@@ -416,18 +456,6 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
       fileData,
       isModification,
     };
-
-    //return resolvePromiseProperties({
-    //  metaData: metaDataPromise,
-    //  fileData: metaDataPromise.then(data =>
-    //    this.readFile(data.objects.entry.path, null, data.branch),
-    //  ),
-    //  isModification: metaDataPromise.then(data =>
-    //    this.isUnpublishedEntryModification(data.objects.entry.path, this.branch),
-    //  ),
-    //}).catch(() => {
-    //  throw new EditorialWorkflowError('content is not under editorial workflow', true);
-    //});
   }
 
   isUnpublishedEntryModification(path: string, branch: string) {
@@ -449,32 +477,6 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
   async getStatuses(sha: string) {
     const resp = await this.requestJSON(`${this.endpointUrl}/commits/${sha}/status`);
     return resp.statuses;
-  }
-
-  composeFileTree(files: any) {
-    let filename;
-    let part;
-    let parts;
-    let subtree: any;
-    const fileTree = {};
-
-    files.forEach((file : any) => {
-      if (file.uploaded) {
-        return;
-      }
-      parts = file.path.split('/').filter((part: any) => part);
-      filename = parts.pop();
-      subtree = fileTree;
-      while ((part = parts.shift())) {
-        // eslint-disable-line no-cond-assign
-        subtree[part] = subtree[part] || {};
-        subtree = subtree[part];
-      }
-      subtree[filename] = file;
-      file.file = true;
-    });
-
-    return fileTree;
   }
 
   async getCommitItems(files: (Entry | AssetProxy)[], branch: string) {
@@ -511,7 +513,7 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
   }
 
   deleteFile(path: string, comment: string, branch = this.branch) {
-    return this.getRef().then((ref: AzureRef) => {
+    return this.getRef(branch).then((ref: AzureRef) => {
 
       var commit = new AzureCommit(comment);
       commit.changes.delete(path);
@@ -546,45 +548,33 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
       params: {
         'searchCriteria.status': 'active',
         // eslint-disable-next-line @typescript-eslint/camelcase
-        'searchCriteria.targetRefName': `refs/heads/${this.branch}`,
+        'searchCriteria.targetRefName': this.branchToRef(this.branch),
         'searchCriteria.includeLinks': false,
         // eslint-disable-next-line @typescript-eslint/camelcase
-        ...(sourceBranch ? { 'searchCriteria.sourceRefName': `refs/heads/${sourceBranch}` } : {}),
+        ...(sourceBranch ? { 'searchCriteria.sourceRefName': this.branchToRef(sourceBranch) } : {}),
       },
     });
 
     //&& mr.labels.some(isCMSLabel)
     console.log(JSON.stringify(mergeRequests.value));
     return mergeRequests.value.filter(
-      (mr : any) => mr.sourceRefName.startsWith(`refs/heads/${CMS_BRANCH_PREFIX}`) ,
+      (mr : any) => mr.sourceRefName.startsWith(this.branchToRef(CMS_BRANCH_PREFIX)),
     );
   }
 
   /**
-   * 
+   * Gets a list of all unpublished branches, which is a list of the pending
+   * merge requests projected to just their source branch names.
    */
-  async listUnpublishedBranches() {
+  async listUnpublishedBranches() : Promise<string[]> {
     console.log(`API.listUnpublishedBranches()`);
 
     const mergeRequests = await this.getMergeRequests();
 
     console.log(mergeRequests);
-    const branches = mergeRequests.map((mr: any) => mr.sourceRefName.replace('refs/heads/', ''));
+    const branches = mergeRequests.map((mr: any) => this.refToBranch(mr.sourceRefName));
 
     return branches;
-  }
-  
-  async getFileId(path: string, branch: string) {
-    console.log(`API.getFileId(path: "${path}", branch: "${branch}")`);
-    const file = await this.request({
-      url: `${this.endpointUrl}/items/`,
-      params: { version: branch, path: path },
-      cache: 'no-store',
-    });
-
-    console.log(file);
-    const blobId = file.objectId;
-    return blobId;
   }
 
   async isFileExists(path: string, branch: string) {
@@ -605,13 +595,22 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
       });
   }
 
-  async createMergeRequest(branch: string, commitMessage: string, status: string) {
 
-    console.log(`API.createMergeRequest(branch: "${branch}", commitMessage: "${commitMessage}", status: "${status}")`);
+  /**
+   * Creates a new pull request with a label of "draft", based on the target branch.
+   * See documentation at: https://docs.microsoft.com/en-us/rest/api/azure/devops/git/pull%20requests/create?view=azure-devops-rest-5.1
+   * @param branch The branch to create the pull request from.
+   * @param commitMessage A message to use as the title for the pull request.
+   * @param status The status of the pull request.
+   */
+  async createPullRequest(branch: string, commitMessage: string, status: string) {
+
+    console.log(`API.createPullRequest(branch: "${branch}", commitMessage: "${commitMessage}", status: "${status}")`);
     const pr = {
-      "sourceRefName": "refs/heads/" + branch,
-      "targetRefName": "refs/heads/" + this.branch,
+      "sourceRefName": this.branchToRef(branch),
+      "targetRefName": this.branchToRef(this.branch),
       "title": commitMessage,
+      "description": "",
       "reviewers": [
         {
           "id": (await this.user()).id
@@ -620,7 +619,12 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
       "completionOptions": {
         "deleteSourceBranch": true,
         "mergeStrategy": this.squashMerges ? "squash" : "noFastForward" 
-      }
+      },
+      "labels": [
+        { 
+          "name": statusToLabel("draft")
+        }
+      ]
     };
 
     await this.requestJSON({
@@ -648,11 +652,10 @@ console.log("Merge request: " + JSON.stringify(mergeRequest));
       url: `${this.endpointUrl}/diffs/commits`,
       params: {
         "baseVersion": `${this.branch}`,
-        "targetVersion": to.replace('refs/heads/', '')
+        "targetVersion": this.refToBranch(to)
       }
     });
 
-console.log(JSON.stringify(result))
     return result.changes;
   }
 
@@ -674,7 +677,7 @@ console.log(JSON.stringify(result))
         branch
       );
 
-      await this.createMergeRequest(
+      await this.createPullRequest(
         branch,
         options.commitMessage,
         options.status || this.initialWorkflowStatus,
@@ -703,156 +706,26 @@ console.log(JSON.stringify(result))
   }
 
   /**
-   * Rebase a pull request onto the latest HEAD of it's target base branch
-   * (should generally be the configured backend branch). Only rebases changes
-   * in the entry file.
+   * 
+   * @param collection The Jekyll collection the item is in
+   * @param slug The slug for the content item
+   * @param status 
    */
-  async rebasePullRequest(prNumber: any, branchName: string, contentKey: string, metadata: any, head: string) {
-    const { path } = metadata.objects.entry;
+  async updateUnpublishedEntryStatus(collection: string, slug: string, newStatus: string) {
+    console.log(`API.updateUnpublishedEntryStatus(slug: "${slug}", newStatus: "${newStatus}")`);
+    const contentKey = this.generateContentKey(collection, slug);
+    const branch = this.branchFromContentKey(contentKey);
 
-    try {
-      /**
-       * Get the published branch and create new commits over it. If the pull
-       * request is up to date, no rebase will occur.
-       */
-      const baseBranch = await this.getBranch();
-      const commits = await this.getPullRequestCommits(prNumber);//, head);
+    const mergeRequest = await this.getBranchMergeRequest(branch);
 
-      /**
-       * Sometimes the list of commits for a pull request isn't updated
-       * immediately after the PR branch is patched. There's also the possibility
-       * that the branch has changed unexpectedly. We account for both by adding
-       * the head if it's missing, or else throwing an error if the PR head is
-       * neither the head we expect nor its parent.
-       */
-      const finalCommits = this.assertHead(commits, head);
-      const rebasedHead = await this.rebaseSingleBlobCommits(baseBranch.commit, finalCommits, path);
+    const labels = [
+      ...mergeRequest.labels
+        .filter((label : AzurePRLabel) => !isCMSLabel(label.name))
+        .map((label : AzurePRLabel) => label.name),
+      statusToLabel(newStatus),
+    ];
 
-      /**
-       * Update metadata, then force update the pull request branch head.
-       */
-      const pr = { ...metadata.pr, head: rebasedHead.sha };
-      const timeStamp = new Date().toISOString();
-      const updatedMetadata = { ...metadata, pr, timeStamp };
-      //await this.storeMetadata(contentKey, updatedMetadata);
-      return this.patchBranch(branchName, rebasedHead.sha, { force: true });
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
-  }
-
-  /**
-   * Rebase an array of commits one-by-one, starting from a given base SHA. Can
-   * accept an array of commits as received from the GitHub API. All commits are
-   * expected to change the same, single blob.
-   */
-  rebaseSingleBlobCommits(baseCommit: any, commits: any, pathToBlob: string) {
-    /**
-     * If the parent of the first commit already matches the target base,
-     * return commits as is.
-     */
-    if (commits.length === 0 || commits[0].parents[0].sha === baseCommit.sha) {
-      return Promise.resolve(last(commits));
-    }
-
-    /**
-     * Re-create each commit over the new base, applying each to the previous,
-     * changing only the parent SHA and tree for each, but retaining all other
-     * info, such as the author/committer data.
-     */
-    const newHeadPromise = commits.reduce((lastCommitPromise: any, commit: any) => {
-      return lastCommitPromise.then((newParent: any) => {
-        /**
-         * Normalize commit data to ensure it's not nested in `commit.commit`.
-         */
-        const parent = this.normalizeCommit(newParent);
-        const commitToRebase = this.normalizeCommit(commit);
-
-        return this.rebaseSingleBlobCommit(parent, commitToRebase, pathToBlob);
-      });
-    }, Promise.resolve(baseCommit));
-
-    /**
-     * Return a promise that resolves when all commits have been created.
-     */
-    return newHeadPromise;
-  }
-
-  /**
-   * Rebase a commit that changes a single blob. Also handles updating the tree.
-   */
-  rebaseSingleBlobCommit(baseCommit: any, commit: any, pathToBlob: string) {
-    /**
-     * Retain original commit metadata.
-     */
-    const { message, author, committer } = commit;
-
-    /**
-     * Set the base commit as the parent.
-     */
-    const parent = [baseCommit.sha];
-
-    /**
-     * Get the blob data by path.
-     */
-    return (
-      this.getBlobInTree(commit.tree.sha, pathToBlob)
-
-        /**
-         * Create a new tree consisting of the base tree and the single updated
-         * blob. Use the full path to indicate nesting, GitHub will take care of
-         * subtree creation.
-         */
-        .then((blob: any) => this.createTree(baseCommit.tree.sha, [{ ...blob, path: pathToBlob }]))
-
-        /**
-         * Create a new commit with the updated tree and original commit metadata.
-         */
-        .then((tree: any) => this.createCommit(message, tree.sha, parent, author, committer))
-    );
-  }
-
-  /**
-   * Get a pull request by PR number.
-   */
-  getPullRequest(prNumber: string) {
-    return this.requestJSON({ url: `${this.endpointUrl}/pulls/${prNumber}` });
-  }
-
-  /**
-   * Get the list of commits for a given pull request.
-   */
-  getPullRequestCommits(prNumber: string) {
-    return this.requestJSON({ url: `${this.endpointUrl}/pulls/${prNumber}/commits` });
-  }
-
-  /**
-   * Returns `commits` with `headToAssert` appended if it's the child of the
-   * last commit in `commits`. Returns `commits` unaltered if `headToAssert` is
-   * already the last commit in `commits`. Otherwise throws an error.
-   */
-  assertHead(commits: any[], headToAssert: any) {
-    const headIsMissing = headToAssert.parents[0].sha === last(commits).sha;
-    const headIsNotMissing = headToAssert.sha === last(commits)?.sha;
-
-    if (headIsMissing) {
-      return commits.concat(headToAssert);
-    } else if (headIsNotMissing) {
-      return commits;
-    }
-
-    throw Error('Editorial workflow branch changed unexpectedly.');
-  }
-
-  updateUnpublishedEntryStatus(collection: any, slug: string, status: any) {
-    const contentKey = slug;
-    return this.retrieveMetadata(contentKey)
-      .then(metadata => ({
-        ...metadata,
-        status,
-      }));
-      //.then(updatedMetadata => this.storeMetadata(contentKey, updatedMetadata));
+    await this.updateMergeRequestLabels(mergeRequest, labels);
   }
 
   deleteUnpublishedEntry(collectionName: any, slug: string) {
@@ -868,19 +741,11 @@ console.log(JSON.stringify(result))
 
     const contentKey = this.generateContentKey(collectionName, slug);
     const branch = this.branchFromContentKey(contentKey);
-    //const mergeRequest = await this.getBranchMergeRequest(branch);
-    //await this.mergeMergeRequest(mergeRequest);
-  }
-  
+    const mergeRequest = await this.getBranchMergeRequest(branch);
 
-  createRef(type: string, name: string, sha: string) {
-    console.log(`API.createRef(${type}, ${name}, ${sha})`);
-    return this.request({
-      url: `${this.endpointUrl}/refs`,
-      method: 'POST',
-      body: JSON.stringify({ name: `refs/${type}/${name}`, oldObjectId: "0000000000000000000000000000000000000000", newObjectId: sha }),
-    });
+    await this.updateMergeRequestStatus(mergeRequest, 'completed');
   }
+
 
   patchRef(type: string, name: string, sha: string, opts = { force: false }) {
     console.log(`API.patchRef(${type}, ${name}, ${sha}, ${JSON.stringify(opts)})`);
@@ -905,11 +770,6 @@ console.log(JSON.stringify(result))
     return this.requestJSON(`${this.endpointUrl}/branches/${encodeURIComponent(branch)}`);
   }
 
-  createBranch(branchName: string, sha: string) {
-    console.log(`API.createBranch(${branchName}, ${sha})`);
-    return this.createRef('heads', branchName, sha);
-  }
-
   assertCmsBranch(branchName: string) {
     return branchName.startsWith(CMS_BRANCH_PREFIX);
   }
@@ -926,202 +786,53 @@ console.log(JSON.stringify(result))
     return this.deleteRef('heads', branchName);
   }
 
-  createPR(title: string, head: string, base = this.branch) {
-    const body = 'Automatically generated by Netlify CMS';
-    return this.requestJSON({
-      url: `${this.endpointUrl}/pulls`,
-      method: 'POST',
-      body: JSON.stringify({ title, body, head, base }),
-    });
-  }
+  async updateMergeRequestLabels(mergeRequest: any, labels: string[]) {
 
-  closePR(pullrequest: any) {
-    const prNumber = pullrequest.number;
-    console.log('%c Deleting PR', 'line-height: 30px;text-align: center;font-weight: bold');
-    return this.request({
-      url: `${this.endpointUrl}/pulls/${prNumber}`,
-      method: 'PATCH',
-      body: JSON.stringify({
-        state: closed,
-      }),
-    });
-  }
-
-  mergePR(pullrequest: any, objects: any) {
-    const headSha = pullrequest.head;
-    const prNumber = pullrequest.number;
-    console.log('%c Merging PR', 'line-height: 30px;text-align: center;font-weight: bold');
-    return this.requestJSON({
-      url: `${this.endpointUrl}/pulls/${prNumber}/merge`,
-      method: 'PUT',
-      body: JSON.stringify({
-        commit_message: 'Automatically generated. Merged on Netlify CMS.',
-        sha: headSha,
-        merge_method: this.squashMerges,
-      }),
-    }).catch(error => {
-      if (error instanceof APIError && error.status === 405) {
-        return this.forceMergePR(pullrequest, objects);
-      } else {
-        throw error;
-      }
-    });
-  }
-
-  forceMergePR(pullrequest: any, objects: any) {
-    const files = objects.files.concat(objects.entry);
-    const fileTree = this.composeFileTree(files);
-    let commitMessage = 'Automatically generated. Merged on Netlify CMS\n\nForce merge of:';
-    files.forEach((file: any) => {
-      commitMessage += `\n* "${file.path}"`;
-    });
-    console.log(
-      '%c Automatic merge not possible - Forcing merge.',
-      'line-height: 30px;text-align: center;font-weight: bold',
-    );
-    return this.getBranch()
-      .then(branchData => this.updateTree(branchData.commit.sha, '/', fileTree))
-      .then(changeTree => this.commit(commitMessage, changeTree))
-      .then(response => this.patchBranch(this.branch, response.sha));
-  }
-
-  getTree(sha: string) {
-    if (sha) {
-      return this.requestJSON({
-        url: `${this.endpointUrl}/git/trees/${sha}`
-      });
-    }
-    return Promise.resolve({ tree: [] });
-  }
-
-  /**
-   * Get a blob from a tree. Requests individual subtrees recursively if blob is
-   * nested within one or more directories.
-   */
-  getBlobInTree(treeSha: any, pathToBlob: string) {
-    const pathSegments = pathToBlob.split('/').filter(val => val);
-    const directories = pathSegments.slice(0, -1);
-    const filename = pathSegments.slice(-1)[0];
-    const baseTree = this.getTree(treeSha);
-    const subTreePromise = directories.reduce((treePromise: any, segment: any) => {
-      return treePromise.then((tree: any) => {
-        const subTreeSha = find(tree.tree, { path: segment }).sha;
-        return this.getTree(subTreeSha);
-      });
-    }, baseTree);
-    return subTreePromise.then((subTree: any) => find(subTree.tree, { path: filename }));
-  }
-
-  toBase64 = (str: string) => Promise.resolve(Base64.encode(str));
-  fromBase64 = (str: string) => Base64.decode(str);
-
-  uploadBlob(item: any) {
-    const content = result(item, 'toBase64', partial(this.toBase64, item.raw));
-
-    return content.then(contentBase64 =>
-      this.requestJSON({
-        url: `${this.endpointUrl}/git/blobs`,
-        method: 'POST',
-        body: JSON.stringify({
-          content: contentBase64,
-          encoding: 'base64',
-        }),
-      }).then(response => {
-        item.sha = response.sha;
-        item.uploaded = true;
-        return item;
-      }),
-    );
-  }
-
-  updateTree(sha: string | null, path: string, fileTree: any): any {
-
-    if (!sha) { throw new Error('You need a sha, apparently');}
-    return this.getTree(sha).then((tree : any) => {
-      let obj;
-      let filename;
-      let fileOrDir;
-      const updates = [];
-      const added: any = {};
-
-      for (let i = 0, len = tree.tree.length; i < len; i++) {
-        obj = tree.tree[i];
-        if ((fileOrDir = fileTree[obj.path])) {
-          // eslint-disable-line no-cond-assign
-          added[obj.path] = true;
-          if (fileOrDir.file) {
-            updates.push({ path: obj.path, mode: obj.mode, type: obj.type, sha: fileOrDir.sha });
-          } else {
-            updates.push(this.updateTree(obj.sha, obj.path, fileOrDir));
+    mergeRequest.labels.forEach(async (l: AzurePRLabel) => {
+      console.log("Label to delete: " + l.name);
+      if (isCMSLabel(l.name)) {
+        await this.requestText({
+          method: 'DELETE',
+          url: `${this.endpointUrl}/pullrequests/${encodeURIComponent(mergeRequest.pullRequestId)}/labels/${encodeURIComponent(l.id)}`,
+          params: {
+            "api-version": "5.1-preview.1"
           }
-        }
+        });
       }
-      for (filename in fileTree) {
-        fileOrDir = fileTree[filename];
-        if (added[filename]) {
-          continue;
-        }
-        updates.push(
-          fileOrDir.file
-            ? { path: filename, mode: '100644', type: 'blob', sha: fileOrDir.sha }
-            : this.updateTree(null, filename, fileOrDir),
-        );
+    });
+
+    labels.forEach(async (l: string) => {
+      await this.requestText({
+        method: 'POST',
+        url: `${this.endpointUrl}/pullrequests/${encodeURIComponent(mergeRequest.pullRequestId)}/labels`,
+        params: {
+          'api-version': '5.1-preview'
+        },
+        body: JSON.stringify({ name: l })
+      });
+    });
+  }
+
+  async updateMergeRequestStatus(mergeRequest: any, status: string) {
+
+    // This is the minimum payload required to complete the pull request.
+    const pullRequestCompletion = {
+      'status': status,
+      'lastMergeSourceCommit': mergeRequest.lastMergeSourceCommit,
+      'completionOptions': {
+        'deleteSourceBranch': true,
+        'mergeCommitMessage': `Approved merge of ${mergeRequest.title}`,
+        "mergeStrategy": this.squashMerges ? 'squash' : 'noFastForward'
       }
-      return Promise.all(updates)
-        .then(tree => this.createTree(sha, tree))
-        .then(response => ({
-          path,
-          mode: '040000',
-          type: 'tree',
-          sha: response.sha,
-          parentSha: sha,
-        }));
-    });
-  }
+    };
 
-  createTree(baseSha: string, tree: any) {
-    return this.requestJSON({
-      url: `${this.endpointUrl}/git/trees`,
-      method: 'POST',
-      body: JSON.stringify({ base_tree: baseSha, tree }),
-    });
-  }
-
-  /**
-   * Some GitHub API calls return commit data in a nested `commit` property,
-   * with the SHA outside of the nested property, while others return a
-   * flatter object with no nested `commit` property. This normalizes a commit
-   * to resemble the latter.
-   */
-  normalizeCommit(commit: any) {
-    if (commit.commit) {
-      return { ...commit.commit, sha: commit.sha };
-    }
-    return commit;
-  }
-
-  commit(message: string, changeTree: any) {
-    const parents = changeTree.parentSha ? [changeTree.parentSha] : [];
-    return this.createCommit(message, changeTree.sha, parents, null, null);
-  }
-
-  createCommit(message: string, treeSha: string, parents: any, author: any, committer: any) {
-    return this.requestJSON({
-      url: `${this.endpointUrl}/git/commits`,
-      method: 'POST',
-      body: JSON.stringify({ message, tree: treeSha, parents, author, committer }),
-    });
-  }
-
-  // In Azure we don't always have the SHA resp ID handy
-  // this function is to get the ObjectId and CommitId (output)
-  // from path and branch (input)
-  getAzureId(path: string, branch: string = this.branch ) {
-    console.log("API.getAzureId")
-    return this.requestJSON({
-      url: `${this.endpointUrl}/items`,
-      params: { version: this.branch, path: path,
-        '$format': "json", versionType: "Branch", versionOptions: "None" } // Azure hardwired to get expected response format   
+    await this.requestJSON({
+      method: 'PATCH',
+      url: `${this.endpointUrl}/pullrequests/${encodeURIComponent(mergeRequest.pullRequestId)}`,
+      params: {
+        supportsIterations: false
+      },
+      body: JSON.stringify(pullRequestCompletion)
     });
   }
 }

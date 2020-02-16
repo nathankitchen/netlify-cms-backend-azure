@@ -170,6 +170,7 @@ export default class Azure implements Implementation {
       path: collectionFile.get('file'),
       label: collectionFile.get('label'),
     }));
+    console.log(`API.entriesByFiles`);
     return this.fetchFiles(listFiles);
   }
 
@@ -179,6 +180,8 @@ export default class Azure implements Implementation {
     files.forEach((file: any) => {
       file.sha = file.objectId; // due to different element naming in Azure
       file.path = file.relativePath;
+      console.log(`fechFiles: ${file.path}`);
+
       promises.push(
         new Promise(resolve =>
           sem.take(() =>
