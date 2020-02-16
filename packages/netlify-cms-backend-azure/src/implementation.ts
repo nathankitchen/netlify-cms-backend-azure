@@ -183,7 +183,7 @@ export default class Azure implements Implementation {
         new Promise(resolve =>
           sem.take(() =>
             this.api!
-              .readFile(file.url, file.objectId) // Azure
+              .readFile(file.path, file.objectId) // Azure
               .then(data => {
                 resolve({ file, data });
                 sem.leave();

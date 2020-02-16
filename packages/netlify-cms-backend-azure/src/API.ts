@@ -276,7 +276,10 @@ export default class API {
     const { collection, slug } = parseContentKey(contentKey);
     const branch = this.branchFromContentKey(contentKey);
     const mergeRequest = await this.getBranchMergeRequest(branch);
-    const diff = await this.getDifferences(mergeRequest.sha);
+
+console.log("Merge request: " + JSON.stringify(mergeRequest));
+
+    const diff = await this.getDifferences(mergeRequest.sourceRefName);
     const path = diff.find(((d: any) => d.old_path.includes(slug))?.old_path as string);
     const mediaFiles = await Promise.all(
       diff
@@ -306,6 +309,7 @@ export default class API {
     { parseText = true, branch = this.branch } = {},
   ): Promise<string | Blob> => {
     const fetchContent = async () => {
+      console.log(path);
       const content = await this.request({
         url: `${this.endpointUrl}/items/`, 
         params: { version: branch, path: path },
@@ -354,9 +358,12 @@ export default class API {
   }
 
   uploadAndCommit(items: any, comment: string = 'Creating new files', branch: string = this.branch) {
-      return this.getRef(branch).then((ref: AzureRef) => {
+      return this.getRef(this.branch).then((ref: AzureRef) => {
         
         ref = ref || { name: 'refs/heads/' + branch, objectId: "0000000000000000000000000000000000000000"};
+        
+        ref.name = `refs/heads/${branch}`;
+        
         var commit = new AzureCommit(comment);
 
         items.forEach((i: any) => {
@@ -379,6 +386,8 @@ export default class API {
           var push = new AzurePush(ref);
           push.commits.push(commit);
               
+
+          console.log(JSON.stringify(push));
           return this.requestJSON({
             url: `${this.endpointUrl}/pushes`,
             method: 'POST',
@@ -391,7 +400,7 @@ export default class API {
   }
 
   async readUnpublishedBranchFile(contentKey: string) {
-    console.log(`API.readUnpublishedBranchFile(contentKey: "${contentKey}")`)
+    console.log(`API.readUnpublishedBranchFile(contentKey: "${contentKey}")`);
     const { branch, collection, slug, path, status, mediaFiles } = await this.retrieveMetadata(contentKey).then(data =>
       data.objects.entry.path ? data : Promise.reject(null),
     );
@@ -422,6 +431,7 @@ export default class API {
   }
 
   isUnpublishedEntryModification(path: string, branch: string) {
+    console.log(`API.isUnpublishedEntryModification(path: ${path}, branch: ${branch})`);
     return this.readFile(path, null, { branch: branch })
       .then(() => true)
       .catch((err: Error) => {
@@ -475,7 +485,7 @@ export default class API {
           this.isFileExists(file.path, branch),
         ]);
         return {
-          action: fileExists ? AzureCommitChangeType.EDIT : AzureCommitChangeType.EDIT,
+          action: fileExists ? AzureCommitChangeType.EDIT : AzureCommitChangeType.ADD,
           base64Content,
           path: '/' + trim(file.path, '/'),
         };
@@ -535,17 +545,18 @@ export default class API {
       url: `${this.endpointUrl}/pullrequests`,
       params: {
         'searchCriteria.status': 'active',
-        labels: 'Any',
         // eslint-disable-next-line @typescript-eslint/camelcase
-        'searchCriteria.targetRefName': this.branch,
+        'searchCriteria.targetRefName': `refs/heads/${this.branch}`,
+        'searchCriteria.includeLinks': false,
         // eslint-disable-next-line @typescript-eslint/camelcase
-        ...(sourceBranch ? { 'searchCriteria.sourceRefName': sourceBranch } : {}),
+        ...(sourceBranch ? { 'searchCriteria.sourceRefName': `refs/heads/${sourceBranch}` } : {}),
       },
     });
 
+    //&& mr.labels.some(isCMSLabel)
     console.log(JSON.stringify(mergeRequests.value));
     return mergeRequests.value.filter(
-      (mr : any) => mr.source_branch.startsWith(CMS_BRANCH_PREFIX) && mr.labels.some(isCMSLabel),
+      (mr : any) => mr.sourceRefName.startsWith(`refs/heads/${CMS_BRANCH_PREFIX}`) ,
     );
   }
 
@@ -558,12 +569,13 @@ export default class API {
     const mergeRequests = await this.getMergeRequests();
 
     console.log(mergeRequests);
-    const branches = mergeRequests.map((mr: any) => mr.source_branch);
+    const branches = mergeRequests.map((mr: any) => mr.sourceRefName.replace('refs/heads/', ''));
 
     return branches;
   }
   
   async getFileId(path: string, branch: string) {
+    console.log(`API.getFileId(path: "${path}", branch: "${branch}")`);
     const file = await this.request({
       url: `${this.endpointUrl}/items/`,
       params: { version: branch, path: path },
@@ -577,16 +589,18 @@ export default class API {
 
   async isFileExists(path: string, branch: string) {
     console.log(`API.isFileExists(path: "${path}", branch: "${branch}")`);
-    return await this.request({
+    return await this.requestText({
       url: `${this.endpointUrl}/items/`,
       params: { version: branch, path: path },
       cache: 'no-store',
     })
-      .then(() => { return true; })
+      .then((r) => { console.log(`isFileExists: ${JSON.stringify(r)}`); return true; })
       .catch(error => {
         if (error instanceof APIError && error.status === 404) {
+          console.log("isFileExists: false");
           return false;
         }
+        console.log("isFileExists: error");
         throw error;
       });
   }
@@ -631,14 +645,15 @@ export default class API {
 
   async getDifferences(to: string) {
     const result = await this.requestJSON({
-      url: `${this.endpointUrl}/repository/compare`,
+      url: `${this.endpointUrl}/diffs/commits`,
       params: {
-        from: this.branch,
-        to,
-      },
+        "baseVersion": `${this.branch}`,
+        "targetVersion": to.replace('refs/heads/', '')
+      }
     });
 
-    return result.diffs;
+console.log(JSON.stringify(result))
+    return result.changes;
   }
 
   async editorialWorkflowGit(files: (Entry | AssetProxy)[], entry: Entry, options: PersistOptions) {
@@ -653,13 +668,18 @@ export default class API {
       const items = await this.getCommitItems(files, this.branch);
       
       // This will be a new branch, might have to create it first.
-      await this.uploadAndCommit(items, options.commitMessage, branch);
+      await this.uploadAndCommit(
+        items,
+        options.commitMessage,
+        branch
+      );
 
-      //await this.createMergeRequest(
-      //  branch,
-      //  options.commitMessage,
-      //  options.status || this.initialWorkflowStatus,
-      //);
+      await this.createMergeRequest(
+        branch,
+        options.commitMessage,
+        options.status || this.initialWorkflowStatus,
+      );
+
     } else {
       const mergeRequest = await this.getBranchMergeRequest(branch);
       //await this.rebaseMergeRequest(mergeRequest);
@@ -1097,6 +1117,7 @@ export default class API {
   // this function is to get the ObjectId and CommitId (output)
   // from path and branch (input)
   getAzureId(path: string, branch: string = this.branch ) {
+    console.log("API.getAzureId")
     return this.requestJSON({
       url: `${this.endpointUrl}/items`,
       params: { version: this.branch, path: path,
