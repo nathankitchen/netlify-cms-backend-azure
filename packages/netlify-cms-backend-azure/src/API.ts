@@ -18,6 +18,7 @@ import {
   EditorialWorkflowError,
   statusToLabel
 } from 'netlify-cms-lib-util';
+
 export const API_NAME = 'Azure DevOps';
 
 export class AzureRepo {
@@ -59,6 +60,12 @@ enum AzureCommitChangeType {
 enum AzureCommitContentType {
   RAW = 'rawtext',
   BASE64 = 'base64encoded'
+}
+
+enum AzurePullRequestStatus {
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  ABANDONED = 'abandoned'
 }
 
 class AzureCommit {
@@ -108,10 +115,15 @@ type AzureRefUpdate = {
   oldObjectId: string;
 };
 
-type AzureRef = {
+class AzureRef {
   name: string;
   objectId: string;
-};
+
+  constructor(name: string, objectId: string) {
+    this.name = name;
+    this.objectId = objectId;
+  }
+}
 
 
 class AzureCommitChange {
@@ -291,16 +303,9 @@ export default class API {
     const branch = this.branchFromContentKey(contentKey);
     const mergeRequest = await this.getBranchMergeRequest(branch);
 
-console.log("Merge request: " + JSON.stringify(mergeRequest));
-
     const diff = await this.getDifferences(mergeRequest.sourceRefName);
-
-    console.log("Pre-filter for slug " + slug);
-    console.log("Differences " + JSON.stringify(diff));
     const path1 = diff.find((d: any) => d.item.path.includes(slug));
-console.log(path1);
     const path = path1?.item.path as string;
-    console.log(path);
     const mediaFiles = await Promise.all(
       diff
         .filter((d: any) => !d.item.isFolder)
@@ -312,13 +317,10 @@ console.log(path1);
     );
 
     const prLabel = mergeRequest.labels?.find((l : AzurePRLabel) => isCMSLabel(l.name));
-    const labelText = prLabel ? prLabel.name : statusToLabel("draft");
-
-    console.log("label text: " + labelText);
+    const labelText = prLabel ? prLabel.name : statusToLabel('draft');
     const status = labelToStatus(labelText);
     const retval = { branch, collection, slug, path, status, mediaFiles };
-
-    console.log(`Merge data: ${JSON.stringify(retval)}`);
+  
     return retval;
   }
 
@@ -391,7 +393,23 @@ console.log(path1);
     });
   }
 
+  async deleteRef(ref: AzureRef): Promise<void> {
+    console.log(`API.deleteRef(branch: "${ref.name}")`);
 
+    const deleteBranchPayload = [
+      {
+        name: ref.name,
+        oldObjectId: ref.objectId,
+        'newObjectId': '0000000000000000000000000000000000000000'
+      }
+    ];
+
+    await this.requestJSON({
+      method: 'POST',
+      url: `${this.endpointUrl}/refs`,
+      body: JSON.stringify(deleteBranchPayload)
+    });
+  }
 
   uploadAndCommit(items: any, comment: string = 'Creating new files', branch: string = this.branch) {
       return this.getRef(this.branch).then((ref: AzureRef) => {
@@ -607,22 +625,18 @@ console.log(path1);
 
     console.log(`API.createPullRequest(branch: "${branch}", commitMessage: "${commitMessage}", status: "${status}")`);
     const pr = {
-      "sourceRefName": this.branchToRef(branch),
-      "targetRefName": this.branchToRef(this.branch),
-      "title": commitMessage,
-      "description": "",
-      "reviewers": [
+      'sourceRefName': this.branchToRef(branch),
+      'targetRefName': this.branchToRef(this.branch),
+      'title': commitMessage,
+      'description': `Editorial workflow to manage approval and merge of ${commitMessage}`,
+      'reviewers': [
         {
-          "id": (await this.user()).id
+          'id': (await this.user()).id
         }
       ],
-      "completionOptions": {
-        "deleteSourceBranch": true,
-        "mergeStrategy": this.squashMerges ? "squash" : "noFastForward" 
-      },
-      "labels": [
+      'labels': [
         { 
-          "name": statusToLabel("draft")
+          'name': statusToLabel('draft')
         }
       ]
     };
@@ -651,7 +665,7 @@ console.log(path1);
     const result = await this.requestJSON({
       url: `${this.endpointUrl}/diffs/commits`,
       params: {
-        "baseVersion": `${this.branch}`,
+        "baseVersion": this.branch,
         "targetVersion": this.refToBranch(to)
       }
     });
@@ -706,10 +720,11 @@ console.log(path1);
   }
 
   /**
-   * 
-   * @param collection The Jekyll collection the item is in
-   * @param slug The slug for the content item
-   * @param status 
+   * Gets a pull request and updates labels to allow it to move between different
+   * states in the editorial workflow.
+   * @param collection The Jekyll collection the item is in.
+   * @param slug The slug for the content item.
+   * @param newStatus The new status for the item.
    */
   async updateUnpublishedEntryStatus(collection: string, slug: string, newStatus: string) {
     console.log(`API.updateUnpublishedEntryStatus(slug: "${slug}", newStatus: "${newStatus}")`);
@@ -725,68 +740,25 @@ console.log(path1);
       statusToLabel(newStatus),
     ];
 
-    await this.updateMergeRequestLabels(mergeRequest, labels);
+    await this.updatePullRequestLabels(mergeRequest, labels);
   }
 
-  deleteUnpublishedEntry(collectionName: any, slug: string) {
+  async deleteUnpublishedEntry(collectionName: any, slug: string) {
     const contentKey = this.generateContentKey(collectionName, slug);
     const branch = this.branchFromContentKey(contentKey);
-    //const mergeRequest = await this.getBranchMergeRequest(branch);
-    //await this.closeMergeRequest(mergeRequest);
-    //await this.deleteBranch(branch);
+    const mergeRequest = await this.getBranchMergeRequest(branch);
+    await this.abandonPullRequest(mergeRequest);
   }
 
   async publishUnpublishedEntry(collectionName: string, slug: string) {
     console.log(`API.publishUnpublishedEntry("collectionName: ${collectionName}", slug: "${slug}")`);
-
     const contentKey = this.generateContentKey(collectionName, slug);
     const branch = this.branchFromContentKey(contentKey);
     const mergeRequest = await this.getBranchMergeRequest(branch);
-
-    await this.updateMergeRequestStatus(mergeRequest, 'completed');
+    await this.completePullRequest(mergeRequest);
   }
 
-
-  patchRef(type: string, name: string, sha: string, opts = { force: false }) {
-    console.log(`API.patchRef(${type}, ${name}, ${sha}, ${JSON.stringify(opts)})`);
-    const force = opts.force || false;
-    return this.requestJSON({
-      url: `${this.endpointUrl}/git/refs/${type}/${encodeURIComponent(name)}`, 
-      method: 'PATCH',
-      body: JSON.stringify({ sha, force }),
-    });
-  }
-
-  deleteRef(type: string, name: string) {
-    console.log(`API.deleteRef(${type}, ${name})`);
-    return this.requestJSON({
-      url: `${this.endpointUrl}/git/refs/${type}/${encodeURIComponent(name)}`,
-      method: 'DELETE'
-    });
-  }
-
-  getBranch(branch: string = this.branch) {
-    console.log(`API.getBranch(${branch})`);
-    return this.requestJSON(`${this.endpointUrl}/branches/${encodeURIComponent(branch)}`);
-  }
-
-  assertCmsBranch(branchName: string) {
-    return branchName.startsWith(CMS_BRANCH_PREFIX);
-  }
-
-  patchBranch(branchName: string, sha: string, opts = { force: false }) {
-    const force = opts.force || false;
-    if (force && !this.assertCmsBranch(branchName)) {
-      throw Error(`Only CMS branches can be force updated, cannot force update ${branchName}`);
-    }
-    return this.patchRef('heads', branchName, sha, { force });
-  }
-
-  deleteBranch(branchName: string) {
-    return this.deleteRef('heads', branchName);
-  }
-
-  async updateMergeRequestLabels(mergeRequest: any, labels: string[]) {
+  async updatePullRequestLabels(mergeRequest: any, labels: string[]) {
 
     mergeRequest.labels.forEach(async (l: AzurePRLabel) => {
       console.log("Label to delete: " + l.name);
@@ -813,15 +785,20 @@ console.log(path1);
     });
   }
 
-  async updateMergeRequestStatus(mergeRequest: any, status: string) {
+  /**
+   * Completes the pull request, setting an appropriate merge commit message
+   * and ensuring that the source branch is also deleted.
+   * @param mergeRequest The merge request provided by a previous GET operation.
+   */
+  async completePullRequest(mergeRequest: any) {
 
     // This is the minimum payload required to complete the pull request.
     const pullRequestCompletion = {
-      'status': status,
+      'status': AzurePullRequestStatus.COMPLETED,
       'lastMergeSourceCommit': mergeRequest.lastMergeSourceCommit,
       'completionOptions': {
         'deleteSourceBranch': true,
-        'mergeCommitMessage': `Approved merge of ${mergeRequest.title}`,
+        'mergeCommitMessage': `Completed merge of ${mergeRequest.title}`,
         "mergeStrategy": this.squashMerges ? 'squash' : 'noFastForward'
       }
     };
@@ -829,10 +806,27 @@ console.log(path1);
     await this.requestJSON({
       method: 'PATCH',
       url: `${this.endpointUrl}/pullrequests/${encodeURIComponent(mergeRequest.pullRequestId)}`,
-      params: {
-        supportsIterations: false
-      },
       body: JSON.stringify(pullRequestCompletion)
     });
+  }
+
+    /**
+   * Abandons the pull request status and ensuring that the source branch is also deleted.
+   * @param pullRequest The pull request provided by a previous GET operation.
+   */
+  async abandonPullRequest(pullRequest: any) {
+
+    const pullRequestAbandon = {
+      'status': AzurePullRequestStatus.ABANDONED
+    };
+
+    await this.requestJSON({
+      method: 'PATCH',
+      url: `${this.endpointUrl}/pullrequests/${encodeURIComponent(pullRequest.pullRequestId)}`,
+      body: JSON.stringify(pullRequestAbandon)
+    });
+
+    // Also delete the source branch.
+    await this.deleteRef(new AzureRef(pullRequest.sourceRefName, pullRequest.lastMergeSourceCommit.commitId));
   }
 }

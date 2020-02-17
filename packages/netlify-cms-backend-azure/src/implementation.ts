@@ -20,7 +20,7 @@ import {
   runWithLock,
   User,
   unpublishedEntries,
-  UnpublishedEntryMediaFile
+  UnpublishedEntryMediaFile,
 } from 'netlify-cms-lib-util';
 import { getBlobSHA } from 'netlify-cms-lib-util/src';
 
