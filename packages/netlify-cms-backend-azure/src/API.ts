@@ -683,8 +683,7 @@ export default class API {
     const unpublished = options.unpublished || false;
     if (!unpublished) {
       const items = await this.getCommitItems(files, this.branch);
-      
-      // This will be a new branch, might have to create it first.
+
       await this.uploadAndCommit(
         items,
         options.commitMessage,

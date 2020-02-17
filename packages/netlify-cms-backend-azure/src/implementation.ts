@@ -1,4 +1,4 @@
-import { trimStart, trim } from 'lodash';
+import { trimStart, trim, last} from 'lodash';
 import semaphore, { Semaphore } from 'semaphore';
 import AuthenticationPage from './AuthenticationPage';
 import API, { API_NAME, AzureRepo } from './API';
@@ -6,6 +6,7 @@ import {
   Credentials,
   Implementation,
   ImplementationFile,
+  ImplementationMediaFile,
   DisplayURL,
   basename,
   Entry,
@@ -213,25 +214,39 @@ export default class Azure implements Implementation {
     }));
   }
 
-  getMedia() {
-    return this.api!.listFiles(this.mediaFolder).then(files =>
-      
-      files.map(({ objectId, relativePath, size, url }) => {
+  /**
+   * Lists all files in the media library, then downloads each one and provides its
+   * content as a blob URL. This ensures that images are displayed even when using a
+   * private repository, where the media wouldn't normally be accessible (the URL
+   * gets used as the img src, which will result in 40X errors if the right header
+   * tokens aren't provided).
+   */
+  async getMedia(): Promise<ImplementationMediaFile[]> {
+    return this.api!.listFiles(this.mediaFolder).then(async files => {
+      return await Promise.all(files.map(async ({ objectId, relativePath, size, url }) => {
         const sha = objectId;
-        const name = relativePath;
-        const path = `${this.mediaFolder}/${relativePath}`;
-        const url2 = new URL(url);
+        const name : string = last(relativePath.split('/')) || '';
+        const path = relativePath;
 
-        if (url2.pathname.match(/.svg$/)) {
-          //url2.search += (url2.search.slice(1) === '' ? '?' : '&') + 'sanitize=true';
-        }
+        var blobUrl = await this.api?.readFile(path, objectId, { parseText: false })
+          .then((media: string | Blob) =>  {
+            if (media instanceof Blob) {
+              // SVG content type isn't automatically set, so we have to override
+              // it to ensure the blob URL renders correctly!
+              if (last(name.split('.')) == 'svg') {
+                return URL.createObjectURL(new Blob([media], { type: 'image/svg+xml' } ))
+              }
+              return URL.createObjectURL(media);
+            }
+        });
 
-        return { id: sha, name, size, displayURL: url2.href, path };
-      }),
-    );
+        return { id: sha, name, size, displayURL: blobUrl || url, path }
+      }))
+    });
   }
 
   getMediaDisplayURL(displayURL: DisplayURL) {
+    console.log(displayURL);
     this._mediaDisplayURLSem = this._mediaDisplayURLSem || semaphore(MAX_CONCURRENT_DOWNLOADS);
     return getMediaDisplayURL(
       displayURL,
@@ -241,6 +256,7 @@ export default class Azure implements Implementation {
   }
 
   async getMediaFile(path: string) {
+    console.log('getMediaFile: ' + path);
     const name = basename(path);
     const blob = await getMediaAsBlob(path, null, this.api!.readFile.bind(this.api!));
     const fileObj = new File([blob], name);
