@@ -1,5 +1,5 @@
 import { Base64 } from 'js-base64';
-import { uniq, initial, last, get, first, find, flow, some, partial, result, trim } from 'lodash';
+import { first, flow, partial, result, trim } from 'lodash';
 import {
   localForage,
   APIError,
@@ -296,9 +296,6 @@ export default class API {
   }
 
   async retrieveMetadata(contentKey: string) {
-
-    console.log(`API.retrieveMetadata(contentKey: "${contentKey}")`);
-
     const { collection, slug } = parseContentKey(contentKey);
     const branch = this.branchFromContentKey(contentKey);
     const mergeRequest = await this.getBranchMergeRequest(branch);
@@ -337,9 +334,7 @@ export default class API {
     sha?: string | null,
     { parseText = true, branch = this.branch } = {},
   ): Promise<string | Blob> => {
-    console.log("reading file for: " + path);
     const fetchContent = async () => {
-      console.log(path);
       const content = await this.request({
         url: `${this.endpointUrl}/items/`, 
         params: { version: branch, path: path },
@@ -373,19 +368,21 @@ export default class API {
           throw new Error(`Cannot list files, path ${path} is not a directory but a ${files.type}`);
         }
         files.forEach((f: any) => { f.relativePath = `${path}/${f.relativePath}`; });
-        console.log(JSON.stringify(files));
         return files;
       })
       .then(files => files.filter(file => file.gitObjectType === 'blob'));    // Azure
   }
 
 
+  /**
+   * Gets an AzureRef representing the HEAD commit of the specified branch.
+   * @param branch The name of the branch to get a commit ref for.
+   */
   async getRef(branch: string = this.branch): Promise<AzureRef> {
-    console.log(`API.getRef(branch: "${branch}")`);
     return this.requestJSON({
       url: `${this.endpointUrl}/refs`,
       params: {
-        '$top': "1", 
+        '$top': '1',   // There's only one, so keep the payload small
         'filter': 'heads/' + branch 
       } 
     }).then((refs: any) => {
@@ -394,8 +391,6 @@ export default class API {
   }
 
   async deleteRef(ref: AzureRef): Promise<void> {
-    console.log(`API.deleteRef(branch: "${ref.name}")`);
-
     const deleteBranchPayload = [
       {
         name: ref.name,
@@ -422,8 +417,6 @@ export default class API {
 
         items.forEach((i: any) => {
 
-          console.log("API.uploadAndCommit: " + i.path);
-
           switch (i.action as AzureCommitChangeType) {
             case AzureCommitChangeType.ADD:
               commit.changes.addBase64(i.path, i.base64Content);
@@ -444,8 +437,7 @@ export default class API {
         if (commit.changes.length > 0) {
           var push = new AzurePush(ref);
           push.commits.push(commit);
-              
-          console.log(JSON.stringify(push));
+
           return this.requestJSON({
             url: `${this.endpointUrl}/pushes`,
             method: 'POST',
@@ -458,12 +450,8 @@ export default class API {
   }
 
   async readUnpublishedBranchFile(contentKey: string) {
-    console.log(`API.readUnpublishedBranchFile(contentKey: "${contentKey}")`);
     const { branch, collection, slug, path, status, mediaFiles } = await this.retrieveMetadata(contentKey);
-
-
     const [fileData, isModification] = await Promise.all([
-      
       this.readFile(path, null, { branch }) as Promise<string>,
       this.isFileExists(path, this.branch),
     ]);
@@ -477,7 +465,6 @@ export default class API {
   }
 
   isUnpublishedEntryModification(path: string, branch: string) {
-    console.log(`API.isUnpublishedEntryModification(path: ${path}, branch: ${branch})`);
     return this.readFile(path, null, { branch: branch })
       .then(() => true)
       .catch((err: Error) => {
@@ -573,8 +560,6 @@ export default class API {
       },
     });
 
-    //&& mr.labels.some(isCMSLabel)
-    console.log(JSON.stringify(mergeRequests.value));
     return mergeRequests.value.filter(
       (mr : any) => mr.sourceRefName.startsWith(this.branchToRef(CMS_BRANCH_PREFIX)),
     );
@@ -585,30 +570,22 @@ export default class API {
    * merge requests projected to just their source branch names.
    */
   async listUnpublishedBranches() : Promise<string[]> {
-    console.log(`API.listUnpublishedBranches()`);
-
     const mergeRequests = await this.getMergeRequests();
-
-    console.log(mergeRequests);
     const branches = mergeRequests.map((mr: any) => this.refToBranch(mr.sourceRefName));
-
     return branches;
   }
 
   async isFileExists(path: string, branch: string) {
-    console.log(`API.isFileExists(path: "${path}", branch: "${branch}")`);
     return await this.requestText({
       url: `${this.endpointUrl}/items/`,
       params: { version: branch, path: path },
       cache: 'no-store',
     })
-      .then((r) => { console.log(`isFileExists: ${JSON.stringify(r)}`); return true; })
+      .then(() => { return true; })
       .catch(error => {
         if (error instanceof APIError && error.status === 404) {
-          console.log("isFileExists: false");
           return false;
         }
-        console.log("isFileExists: error");
         throw error;
       });
   }
@@ -623,7 +600,6 @@ export default class API {
    */
   async createPullRequest(branch: string, commitMessage: string, status: string) {
 
-    console.log(`API.createPullRequest(branch: "${branch}", commitMessage: "${commitMessage}", status: "${status}")`);
     const pr = {
       'sourceRefName': this.branchToRef(branch),
       'targetRefName': this.branchToRef(this.branch),
@@ -652,7 +628,6 @@ export default class API {
   }
 
   async getBranchMergeRequest(branch: string) {
-    console.log(`API.getBranchMergeRequest(branch: "${branch}")`);
     const mergeRequests = await this.getMergeRequests(branch);
     if (mergeRequests.length <= 0) {
       throw new EditorialWorkflowError('content is not under editorial workflow', true);
@@ -674,13 +649,10 @@ export default class API {
   }
 
   async editorialWorkflowGit(files: (Entry | AssetProxy)[], entry: Entry, options: PersistOptions) {
-
-    console.log(`API.editorialWorkflowGit`);
-
     const contentKey = this.generateContentKey(options.collectionName as string, entry.slug);
     const branch = this.branchFromContentKey(contentKey);
-
     const unpublished = options.unpublished || false;
+
     if (!unpublished) {
       const items = await this.getCommitItems(files, this.branch);
 
@@ -726,7 +698,6 @@ export default class API {
    * @param newStatus The new status for the item.
    */
   async updateUnpublishedEntryStatus(collection: string, slug: string, newStatus: string) {
-    console.log(`API.updateUnpublishedEntryStatus(slug: "${slug}", newStatus: "${newStatus}")`);
     const contentKey = this.generateContentKey(collection, slug);
     const branch = this.branchFromContentKey(contentKey);
 
@@ -750,7 +721,6 @@ export default class API {
   }
 
   async publishUnpublishedEntry(collectionName: string, slug: string) {
-    console.log(`API.publishUnpublishedEntry("collectionName: ${collectionName}", slug: "${slug}")`);
     const contentKey = this.generateContentKey(collectionName, slug);
     const branch = this.branchFromContentKey(contentKey);
     const mergeRequest = await this.getBranchMergeRequest(branch);
@@ -760,7 +730,6 @@ export default class API {
   async updatePullRequestLabels(mergeRequest: any, labels: string[]) {
 
     mergeRequest.labels.forEach(async (l: AzurePRLabel) => {
-      console.log("Label to delete: " + l.name);
       if (isCMSLabel(l.name)) {
         await this.requestText({
           method: 'DELETE',

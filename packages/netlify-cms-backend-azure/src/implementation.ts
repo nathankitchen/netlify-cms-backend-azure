@@ -155,12 +155,12 @@ export default class Azure implements Implementation {
   }
 
   entriesByFolder(collection: string, extension: string, depth: number) {
-    console.log('entriesByFolder');
     return this.api!
       .listFiles(collection)
-      .then(files => { // Azure - de-activate filter for debug
-        // files.filter(file => file.name.endsWith('.' + extension)))
-        console.log('IMPL files-liste: ' + JSON.stringify (files ) );
+      .then(files => {
+        if (extension) {
+          return files.filter(file => file.relativePath.endsWith('.' + extension));
+        }
         return files;
       })
     .then(this.fetchFiles);
@@ -171,7 +171,6 @@ export default class Azure implements Implementation {
       path: collectionFile.get('file'),
       label: collectionFile.get('label'),
     }));
-    console.log(`API.entriesByFiles`);
     return this.fetchFiles(listFiles);
   }
 
@@ -181,7 +180,6 @@ export default class Azure implements Implementation {
     files.forEach((file: any) => {
       file.sha = file.objectId; // due to different element naming in Azure
       file.path = file.relativePath;
-      console.log(`fechFiles: ${file.path}`);
 
       promises.push(
         new Promise(resolve =>
@@ -216,31 +214,17 @@ export default class Azure implements Implementation {
 
   /**
    * Lists all files in the media library, then downloads each one and provides its
-   * content as a blob URL. This ensures that images are displayed even when using a
-   * private repository, where the media wouldn't normally be accessible (the URL
-   * gets used as the img src, which will result in 40X errors if the right header
-   * tokens aren't provided).
+   * content as a blob URL.
    */
   async getMedia(): Promise<ImplementationMediaFile[]> {
     return this.api!.listFiles(this.mediaFolder).then(async files => {
       return await Promise.all(files.map(async ({ objectId, relativePath, size, url }) => {
-        const sha = objectId;
+        
         const name : string = last(relativePath.split('/')) || '';
-        const path = relativePath;
 
-        var blobUrl = await this.api?.readFile(path, objectId, { parseText: false })
-          .then((media: string | Blob) =>  {
-            if (media instanceof Blob) {
-              // SVG content type isn't automatically set, so we have to override
-              // it to ensure the blob URL renders correctly!
-              if (last(name.split('.')) == 'svg') {
-                return URL.createObjectURL(new Blob([media], { type: 'image/svg+xml' } ))
-              }
-              return URL.createObjectURL(media);
-            }
-        });
+        var blobUrl = await this.getMediaDisplayURL({ id: objectId, path: relativePath });
 
-        return { id: sha, name, size, displayURL: blobUrl || url, path }
+        return { id: objectId, name, size, displayURL: blobUrl || url, path: relativePath }
       }))
     });
   }
@@ -392,7 +376,7 @@ export default class Azure implements Implementation {
     );
   }
 
-    /**
+  /**
    * Uses Azure's Statuses API to retrieve statuses, infers which is for a
    * deploy preview via `getPreviewStatus`. Returns the url provided by the
    * status, as well as the status state, which should be one of 'success',
