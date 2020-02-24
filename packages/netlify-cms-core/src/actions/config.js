@@ -1,6 +1,6 @@
 import yaml from 'js-yaml';
 import { Map, fromJS } from 'immutable';
-import { trimStart, get } from 'lodash';
+import { trimStart, get, isPlainObject } from 'lodash';
 import { authenticateUser } from 'Actions/auth';
 import * as publishModes from 'Constants/publishModes';
 import { validateConfig } from 'Constants/configSchema';
@@ -145,6 +145,60 @@ export function mergeConfig(config) {
   return { type: CONFIG_MERGE, payload: config };
 }
 
+export async function detectProxyServer(localBackend) {
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    let proxyUrl;
+    if (localBackend === true) {
+      proxyUrl = 'http://localhost:8081/api/v1';
+    } else if (isPlainObject(localBackend)) {
+      proxyUrl = localBackend.url;
+    }
+    try {
+      console.log(`Looking for Netlify CMS Proxy Server at '${proxyUrl}'`);
+      const { repo, publish_modes, type } = await fetch(`${proxyUrl}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'info' }),
+      }).then(res => res.json());
+      if (typeof repo === 'string' && Array.isArray(publish_modes) && typeof type === 'string') {
+        console.log(`Detected Netlify CMS Proxy Server at '${proxyUrl}' with repo: '${repo}'`);
+        return { proxyUrl, publish_modes, type };
+      }
+    } catch {
+      console.log(`Netlify CMS Proxy Server not detected at '${proxyUrl}'`);
+    }
+  }
+  return {};
+}
+
+export async function handleLocalBackend(mergedConfig) {
+  if (mergedConfig.has('local_backend')) {
+    const { proxyUrl, publish_modes, type } = await detectProxyServer(
+      mergedConfig.toJS().local_backend,
+    );
+    if (proxyUrl) {
+      mergedConfig = mergePreloadedConfig(mergedConfig, {
+        backend: { name: 'proxy', proxy_url: proxyUrl },
+      });
+      if (
+        mergedConfig.has('publish_mode') &&
+        !publish_modes.includes(mergedConfig.get('publish_mode'))
+      ) {
+        const newPublishMode = publish_modes[0];
+        console.log(
+          `'${mergedConfig.get(
+            'publish_mode',
+          )}' is not supported by '${type}' backend, switching to '${newPublishMode}'`,
+        );
+        mergedConfig = mergePreloadedConfig(mergedConfig, {
+          publish_mode: newPublishMode,
+        });
+      }
+    }
+  }
+  return mergedConfig;
+}
+
 export function loadConfig() {
   if (window.CMS_CONFIG) {
     return configDidLoad(fromJS(window.CMS_CONFIG));
@@ -155,16 +209,20 @@ export function loadConfig() {
     try {
       const preloadedConfig = getState().config;
       const configUrl = getConfigUrl();
+      const isPreloaded = preloadedConfig && preloadedConfig.size > 1;
       const loadedConfig =
         preloadedConfig && preloadedConfig.get('load_config_file') === false
           ? {}
-          : await getConfig(configUrl, preloadedConfig && preloadedConfig.size > 1);
+          : await getConfig(configUrl, isPreloaded);
 
       /**
        * Merge any existing configuration so the result can be validated.
        */
-      const mergedConfig = mergePreloadedConfig(preloadedConfig, loadedConfig);
+      let mergedConfig = mergePreloadedConfig(preloadedConfig, loadedConfig);
+
       validateConfig(mergedConfig.toJS());
+
+      mergedConfig = await handleLocalBackend(mergedConfig);
 
       const config = applyDefaults(mergedConfig);
 

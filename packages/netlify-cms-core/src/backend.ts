@@ -3,7 +3,7 @@ import { List, Map, fromJS } from 'immutable';
 import * as fuzzy from 'fuzzy';
 import { resolveFormat } from './formats/formats';
 import { selectUseWorkflow } from './reducers/config';
-import { selectMediaFilePath, selectMediaFolder } from './reducers/entries';
+import { selectMediaFilePath, selectEntry } from './reducers/entries';
 import { selectIntegration } from './reducers/integrations';
 import {
   selectEntrySlug,
@@ -13,10 +13,11 @@ import {
   selectAllowDeletion,
   selectFolderEntryExtension,
   selectInferedField,
+  selectMediaFolders,
 } from './reducers/collections';
 import { createEntry, EntryValue } from './valueObjects/Entry';
 import { sanitizeChar } from './lib/urlHelper';
-import { getBackend } from './lib/registry';
+import { getBackend, invokeEvent } from './lib/registry';
 import { commitMessageFormatter, slugFormatter, previewUrlFormatter } from './lib/formatters';
 import {
   localForage,
@@ -26,11 +27,11 @@ import {
   Implementation as BackendImplementation,
   DisplayURL,
   ImplementationEntry,
-  ImplementationMediaFile,
   Credentials,
   User,
   getPathDepth,
   Config as ImplementationConfig,
+  blobToFileObj,
 } from 'netlify-cms-lib-util';
 import { status } from './constants/publishModes';
 import { extractTemplateVars, dateParsers } from './lib/stringTemplate';
@@ -43,6 +44,7 @@ import {
   EntryDraft,
   CollectionFile,
   State,
+  EntryField,
 } from './types/redux';
 import AssetProxy from './valueObjects/AssetProxy';
 import { FOLDER, FILES } from './constants/collectionTypes';
@@ -102,10 +104,22 @@ interface BackendOptions {
   config?: Config;
 }
 
+export interface MediaFile {
+  name: string;
+  id: string;
+  size?: number;
+  displayURL?: DisplayURL;
+  path: string;
+  draft?: boolean;
+  url?: string;
+  file?: File;
+  field?: EntryField;
+}
+
 interface BackupEntry {
   raw: string;
   path: string;
-  mediaFiles: ImplementationMediaFile[];
+  mediaFiles: MediaFile[];
 }
 
 interface PersistArgs {
@@ -442,15 +456,15 @@ export class Backend {
       return;
     }
 
-    const mediaFiles = await Promise.all<ImplementationMediaFile>(
+    const mediaFiles = await Promise.all<MediaFile>(
       entry
         .get('mediaFiles')
         .toJS()
-        .map(async (file: ImplementationMediaFile) => {
+        .map(async (file: MediaFile) => {
           // make sure to serialize the file
           if (file.url?.startsWith('blob:')) {
             const blob = await fetch(file.url as string).then(res => res.blob());
-            return { ...file, file: new File([blob], file.name) };
+            return { ...file, file: blobToFileObj(file.name, blob) };
           }
           return file;
         }),
@@ -483,7 +497,6 @@ export class Backend {
     const integration = selectIntegration(state.integrations, null, 'assetStore');
 
     const loadedEntry = await this.implementation.getEntry(path);
-
     const entry = createEntry(collection.get('name'), slug, loadedEntry.file.path, {
       raw: loadedEntry.data,
       label,
@@ -491,10 +504,12 @@ export class Backend {
     });
 
     const entryWithFormat = this.entryWithFormat(collection)(entry);
-    if (collection.has('media_folder') && !integration) {
-      entry.mediaFiles = await this.implementation.getMedia(
-        selectMediaFolder(state.config, collection, fromJS(entryWithFormat)),
-      );
+    const mediaFolders = selectMediaFolders(state, collection, fromJS(entryWithFormat));
+    if (mediaFolders.length > 0 && !integration) {
+      entry.mediaFiles = [];
+      for (const folder of mediaFolders) {
+        entry.mediaFiles = [...entry.mediaFiles, ...(await this.implementation.getMedia(folder))];
+      }
     } else {
       entry.mediaFiles = state.mediaLibrary.get('files') || [];
     }
@@ -691,7 +706,13 @@ export class Backend {
       assetProxies.map(asset => {
         // update media files path based on entry path
         const oldPath = asset.path;
-        const newPath = selectMediaFilePath(config, collection, entryDraft.get('entry'), oldPath);
+        const newPath = selectMediaFilePath(
+          config,
+          collection,
+          entryDraft.get('entry').set('path', path),
+          oldPath,
+          asset.field,
+        );
         asset.path = newPath;
       });
     } else {
@@ -732,7 +753,38 @@ export class Backend {
       ...updatedOptions,
     };
 
-    return this.implementation.persistEntry(entryObj, assetProxies, opts).then(() => entryObj.slug);
+    if (!useWorkflow) {
+      await this.invokePrePublishEvent(entryDraft.get('entry'));
+    }
+
+    await this.implementation.persistEntry(entryObj, assetProxies, opts);
+
+    if (!useWorkflow) {
+      await this.invokePostPublishEvent(entryDraft.get('entry'));
+    }
+
+    return entryObj.slug;
+  }
+
+  async invokeEventWithEntry(event: string, entry: EntryMap) {
+    const { login, name } = (await this.currentUser()) as User;
+    await invokeEvent({ name: event, data: { entry, author: { login, name } } });
+  }
+
+  async invokePrePublishEvent(entry: EntryMap) {
+    await this.invokeEventWithEntry('prePublish', entry);
+  }
+
+  async invokePostPublishEvent(entry: EntryMap) {
+    await this.invokeEventWithEntry('postPublish', entry);
+  }
+
+  async invokePreUnpublishEvent(entry: EntryMap) {
+    await this.invokeEventWithEntry('preUnpublish', entry);
+  }
+
+  async invokePostUnpublishEvent(entry: EntryMap) {
+    await this.invokeEventWithEntry('postUnpublish', entry);
   }
 
   async persistMedia(config: Config, file: AssetProxy) {
@@ -752,13 +804,14 @@ export class Backend {
     return this.implementation.persistMedia(file, options);
   }
 
-  async deleteEntry(config: Config, collection: Collection, slug: string) {
+  async deleteEntry(state: State, collection: Collection, slug: string) {
     const path = selectEntryPath(collection, slug) as string;
 
     if (!selectAllowDeletion(collection)) {
       throw new Error('Not allowed to delete entries in this collection');
     }
 
+    const config = state.config;
     const user = (await this.currentUser()) as User;
     const commitMessage = commitMessageFormatter(
       'delete',
@@ -772,7 +825,12 @@ export class Backend {
       },
       user.useOpenAuthoring,
     );
-    return this.implementation.deleteFile(path, commitMessage);
+
+    const entry = selectEntry(state.entries, collection.get('name'), slug);
+    await this.invokePreUnpublishEvent(entry);
+    const result = await this.implementation.deleteFile(path, commitMessage);
+    await this.invokePostUnpublishEvent(entry);
+    return result;
   }
 
   async deleteMedia(config: Config, path: string) {
@@ -798,8 +856,13 @@ export class Backend {
     return this.implementation.updateUnpublishedEntryStatus!(collection, slug, newStatus);
   }
 
-  publishUnpublishedEntry(collection: string, slug: string) {
-    return this.implementation.publishUnpublishedEntry!(collection, slug);
+  async publishUnpublishedEntry(entry: EntryMap) {
+    const collection = entry.get('collection');
+    const slug = entry.get('slug');
+
+    await this.invokePrePublishEvent(entry);
+    await this.implementation.publishUnpublishedEntry!(collection, slug);
+    await this.invokePostPublishEvent(entry);
   }
 
   deleteUnpublishedEntry(collection: string, slug: string) {

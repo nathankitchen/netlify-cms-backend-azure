@@ -50,18 +50,17 @@ export default class RawEditor extends React.Component {
     }
   }
 
-  handleCopy = async (event, editor) => {
-    event.persist();
+  handleCopy = (event, editor) => {
     const { getAsset, resolveWidget } = this.props;
     const markdown = Plain.serialize(Value.create({ document: editor.value.fragment }));
-    const html = await markdownToHtml(markdown, { getAsset, resolveWidget });
+    const html = markdownToHtml(markdown, { getAsset, resolveWidget });
     setEventTransfer(event, 'text', markdown);
     setEventTransfer(event, 'html', html);
     event.preventDefault();
   };
 
-  handleCut = async (event, editor, next) => {
-    await this.handleCopy(event, editor, next);
+  handleCut = (event, editor, next) => {
+    this.handleCopy(event, editor, next);
     editor.delete();
   };
 
@@ -101,7 +100,7 @@ export default class RawEditor extends React.Component {
   };
 
   render() {
-    const { className, field } = this.props;
+    const { className, field, t } = this.props;
     return (
       <RawEditorContainer>
         <EditorControlBar>
@@ -110,6 +109,7 @@ export default class RawEditor extends React.Component {
             buttons={field.get('buttons')}
             disabled
             rawMode
+            t={t}
           />
         </EditorControlBar>
         <ClassNames>
@@ -127,6 +127,7 @@ export default class RawEditor extends React.Component {
               onCut={this.handleCut}
               onCopy={this.handleCopy}
               ref={this.processRef}
+              t={t}
             />
           )}
         </ClassNames>
@@ -141,4 +142,5 @@ RawEditor.propTypes = {
   className: PropTypes.string.isRequired,
   value: PropTypes.string,
   field: ImmutablePropTypes.map.isRequired,
+  t: PropTypes.func.isRequired,
 };

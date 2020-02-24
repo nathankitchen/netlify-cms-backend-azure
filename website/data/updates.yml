@@ -1,4 +1,16 @@
 updates:
+  - date: '2020-02-05'
+    description: 'Local development support (beta), unpublish hook, bugfixes'
+    version: 2.10.17
+  - date: '2020-01-31'
+    description: 'prepublish/postpublish hooks, min/max select widget validation'
+    version: 2.10.16
+  - date: '2020-01-30'
+    description: 'bugfixes'
+    version: 2.10.15
+  - date: '2020-01-28'
+    description: 'bugfixes'
+    version: 2.10.14
   - date: '2020-01-26'
     description: 'fix multiple image field issue'
     version: 2.10.13

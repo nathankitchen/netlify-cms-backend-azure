@@ -25,10 +25,11 @@ import {
   asyncLock,
   AsyncLock,
   runWithLock,
+  getBlobSHA,
+  blobToFileObj,
 } from 'netlify-cms-lib-util';
 import AuthenticationPage from './AuthenticationPage';
 import API, { API_NAME } from './API';
-import { getBlobSHA } from 'netlify-cms-lib-util/src';
 
 const MAX_CONCURRENT_DOWNLOADS = 10;
 
@@ -141,7 +142,7 @@ export default class GitLab implements Implementation {
 
     const listFiles = () =>
       this.api!.listFiles(folder, depth > 1).then(({ files, cursor: c }) => {
-        cursor = c;
+        cursor = c.mergeMeta({ folder, extension, depth });
         return files.filter(file => this.filterFile(folder, file, extension, depth));
       });
 
@@ -194,7 +195,7 @@ export default class GitLab implements Implementation {
   async getMediaFile(path: string) {
     const name = basename(path);
     const blob = await getMediaAsBlob(path, null, this.api!.readFile.bind(this.api!));
-    const fileObj = new File([blob], name);
+    const fileObj = blobToFileObj(name, blob);
     const url = URL.createObjectURL(fileObj);
     const id = await getBlobSHA(blob);
 
@@ -245,16 +246,25 @@ export default class GitLab implements Implementation {
   }
 
   traverseCursor(cursor: Cursor, action: string) {
-    return this.api!.traverseCursor(cursor, action).then(
-      async ({ entries, cursor: newCursor }) => ({
+    return this.api!.traverseCursor(cursor, action).then(async ({ entries, cursor: newCursor }) => {
+      const [folder, depth, extension] = [
+        cursor.meta?.get('folder') as string,
+        cursor.meta?.get('depth') as number,
+        cursor.meta?.get('extension') as string,
+      ];
+      if (folder && depth && extension) {
+        entries = entries.filter(f => this.filterFile(folder, f, extension, depth));
+        newCursor = newCursor.mergeMeta({ folder, extension, depth });
+      }
+      return {
         entries: await Promise.all(
           entries.map(file =>
             this.api!.readFile(file.path, file.id).then(data => ({ file, data: data as string })),
           ),
         ),
         cursor: newCursor,
-      }),
-    );
+      };
+    });
   }
 
   loadMediaFile(branch: string, file: UnpublishedEntryMediaFile) {
@@ -266,7 +276,7 @@ export default class GitLab implements Implementation {
 
     return getMediaAsBlob(file.path, null, readFile).then(blob => {
       const name = basename(file.path);
-      const fileObj = new File([blob], name);
+      const fileObj = blobToFileObj(name, blob);
       return {
         id: file.path,
         displayURL: URL.createObjectURL(fileObj),

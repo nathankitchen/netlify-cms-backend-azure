@@ -290,8 +290,24 @@ export function retrieveLocalBackup(collection: Collection, slug: string) {
     if (entry) {
       // load assets from backup
       const mediaFiles = entry.mediaFiles || [];
-      const assetProxies: AssetProxy[] = mediaFiles.map(file =>
-        createAssetProxy({ path: file.path, file: file.file, url: file.url }),
+      const assetProxies: AssetProxy[] = await Promise.all(
+        mediaFiles.map(file => {
+          if (file.file || file.url) {
+            return createAssetProxy({
+              path: file.path,
+              file: file.file,
+              url: file.url,
+              field: file.field,
+            });
+          } else {
+            return getAsset({
+              collection,
+              entry: fromJS(entry),
+              path: file.path,
+              field: file.field,
+            })(dispatch, getState);
+          }
+        }),
       );
       dispatch(addAssets(assetProxies));
 
@@ -313,12 +329,13 @@ export function deleteLocalBackup(collection: Collection, slug: string) {
  */
 
 export function loadEntry(collection: Collection, slug: string) {
-  return (dispatch: ThunkDispatch<State, {}, AnyAction>, getState: () => State) => {
+  return async (dispatch: ThunkDispatch<State, {}, AnyAction>, getState: () => State) => {
     const state = getState();
     const backend = currentBackend(state.config);
+    await waitForMediaLibraryToLoad(dispatch, getState());
     dispatch(entryLoading(collection, slug));
     return backend
-      .getEntry(state, collection, slug)
+      .getEntry(getState(), collection, slug)
       .then((loadedEntry: EntryValue) => {
         return dispatch(entryLoaded(collection, loadedEntry));
       })
@@ -540,11 +557,16 @@ export async function getMediaAssets({
   entry: EntryMap;
   dispatch: Dispatch;
 }) {
-  const filesArray = entry.get('mediaFiles').toJS() as MediaFile[];
+  const filesArray = entry.get('mediaFiles').toArray();
   const assets = await Promise.all(
     filesArray
-      .filter(file => file.draft)
-      .map(file => getAsset({ collection, entry, path: file.path })(dispatch, getState)),
+      .filter(file => file.get('draft'))
+      .map(file =>
+        getAsset({ collection, entry, path: file.get('path'), field: file.get('field') })(
+          dispatch,
+          getState,
+        ),
+      ),
   );
 
   return assets;
@@ -644,7 +666,7 @@ export function deleteEntry(collection: Collection, slug: string) {
 
     dispatch(entryDeleting(collection, slug));
     return backend
-      .deleteEntry(state.config, collection, slug)
+      .deleteEntry(state, collection, slug)
       .then(() => {
         return dispatch(entryDeleted(collection, slug));
       })

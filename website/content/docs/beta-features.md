@@ -8,7 +8,35 @@ We run new functionality in an open beta format from time to time. That means th
 
 **Use these features at your own risk.**
 
-## GitLab and BitBucket editorial workflow support
+## Working with a Local Git Repository
+
+**_added in netlify-cms@2.10.17 / netlify-cms-app@2.11.14_**
+
+You can connect Netlify CMS to a local Git repository, instead of working with a live repo.
+
+1. Navigate to a local Git repository configured with the CMS.
+2. Run `npx netlify-cms-proxy-server` from the root directory of the above repository.
+3. Add the top-level property `local_backend` configuration to your `config.yml`:
+
+```yaml
+backend:
+  name: git-gateway
+
+# when using the default proxy server port
+local_backend: true
+
+# when using a custom proxy server port
+local_backend:
+  url: http://localhost:8082/api/v1
+```
+
+4. Start your local development server (e.g. run `gatsby develop`).
+
+**Note:** `netlify-cms-proxy-server` runs an unauthenticated express server. As any client can send requests to the server, it should only be used for local development.
+
+## GitLab and BitBucket Editorial Workflow Support
+
+**_added in netlify-cms@2.10.6 / netlify-cms-app@2.11.3_**
 
 You can enable the Editorial Workflow with the following line in your Netlify CMS `config.yml` file:
 
@@ -74,7 +102,7 @@ Some static site generators (e.g. Gatsby) work best when using relative image pa
 
 This can now be achieved using a per collection `media_folder` configuration which specifies a relative media folder for the collection.
 
-For example, the following configuration will result in media files being saved in the same directory as the entry and the image field being populated with the relative path to the image.
+For example, the following configuration will result in media files being saved in the same directory as the entry, and the image field being populated with the relative path to the image.
 
 ```yaml
 media_folder: static/media
@@ -96,7 +124,7 @@ collections:
         widget: 'image'
 ```
 
-More specifically, saving a entry with a title of `example post` with an image named `image.png` will result in a directory structure of:
+More specifically, saving an entry with a title of `example post` with an image named `image.png` will result in a directory structure of:
 
 ```bash
 content
@@ -108,7 +136,7 @@ content
 
 And for the image field being populated with a value of `image.png`.
 
-**Note: When specifying a `path` on a folder collection `media_folder` defaults to an empty string.**
+**Note: When specifying a `path` on a folder collection, `media_folder` defaults to an empty string.**
 
 **Available template tags:**
 
@@ -358,3 +386,33 @@ Example config:
     config:
       max_file_size: 512000 # in bytes, only for default media library
 ```
+
+## Registering to CMS Events
+
+You can execute a function when a specific CMS event occurs.
+
+Example usage:
+
+```javascript
+CMS.registerEventListener({
+  name: 'prePublish',
+  handler: ({ author, entry }) => console.log(JSON.stringify({ author, data: entry.get('data') })),
+});
+
+CMS.registerEventListener({
+  name: 'postPublish',
+  handler: ({ author, entry }) => console.log(JSON.stringify({ author, data: entry.get('data') })),
+});
+
+CMS.registerEventListener({
+  name: 'preUnpublish',
+  handler: ({ author, entry }) => console.log(JSON.stringify({ author, data: entry.get('data') })),
+});
+
+CMS.registerEventListener({
+  name: 'postUnpublish',
+  handler: ({ author, entry }) => console.log(JSON.stringify({ author, data: entry.get('data') })),
+});
+```
+
+> Supported events are `prePublish`, `postPublish`, `preUnpublish` and `postUnpublish`

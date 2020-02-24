@@ -33,6 +33,7 @@ import {
   getPointerFileForMediaFileObj,
   getLargeMediaFilteredMediaFiles,
   FetchError,
+  blobToFileObj,
 } from 'netlify-cms-lib-util';
 import NetlifyAuthenticator from 'netlify-cms-lib-auth';
 import AuthenticationPage from './AuthenticationPage';
@@ -251,7 +252,7 @@ export default class BitbucketBackend implements Implementation {
 
     const listFiles = () =>
       this.api!.listFiles(folder, depth).then(({ entries, cursor: c }) => {
-        cursor = c;
+        cursor = c.mergeMeta({ extension });
         return filterByPropExtension(extension, 'path')(entries);
       });
 
@@ -325,7 +326,7 @@ export default class BitbucketBackend implements Implementation {
   async getMediaFile(path: string) {
     const name = basename(path);
     const blob = await getMediaAsBlob(path, null, this.api!.readFile.bind(this.api!));
-    const fileObj = new File([blob], name);
+    const fileObj = blobToFileObj(name, blob);
     const url = URL.createObjectURL(fileObj);
     const id = await getBlobSHA(fileObj);
 
@@ -397,16 +398,21 @@ export default class BitbucketBackend implements Implementation {
   }
 
   traverseCursor(cursor: Cursor, action: string) {
-    return this.api!.traverseCursor(cursor, action).then(
-      async ({ entries, cursor: newCursor }) => ({
+    return this.api!.traverseCursor(cursor, action).then(async ({ entries, cursor: newCursor }) => {
+      const extension = cursor.meta?.get('extension');
+      if (extension) {
+        entries = filterByPropExtension(extension as string, 'path')(entries);
+        newCursor = newCursor.mergeMeta({ extension });
+      }
+      return {
         entries: await Promise.all(
           entries.map(file =>
             this.api!.readFile(file.path, file.id).then(data => ({ file, data: data as string })),
           ),
         ),
         cursor: newCursor,
-      }),
-    );
+      };
+    });
   }
 
   loadMediaFile(branch: string, file: UnpublishedEntryMediaFile) {
@@ -418,7 +424,7 @@ export default class BitbucketBackend implements Implementation {
 
     return getMediaAsBlob(file.path, null, readFile).then(blob => {
       const name = basename(file.path);
-      const fileObj = new File([blob], name);
+      const fileObj = blobToFileObj(name, blob);
       return {
         id: file.path,
         displayURL: URL.createObjectURL(fileObj),

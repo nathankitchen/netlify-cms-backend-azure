@@ -5,7 +5,16 @@ import { CONFIG_SUCCESS } from '../actions/config';
 import { FILES, FOLDER } from '../constants/collectionTypes';
 import { INFERABLE_FIELDS, IDENTIFIER_FIELDS } from '../constants/fieldInference';
 import { formatExtensions } from '../formats/formats';
-import { CollectionsAction, Collection, CollectionFiles, EntryField } from '../types/redux';
+import {
+  CollectionsAction,
+  Collection,
+  CollectionFiles,
+  EntryField,
+  State,
+  EntryMap,
+} from '../types/redux';
+import { selectMediaFolder } from './entries';
+import { keyToPathArray } from '../lib/stringTemplate';
 
 const collections = (state = null, action: CollectionsAction) => {
   switch (action.type) {
@@ -106,6 +115,67 @@ const selectors = {
   },
 };
 
+const getFieldsWithMediaFolders = (fields: EntryField[]) => {
+  const fieldsWithMediaFolders = fields.reduce((acc, f) => {
+    if (f.has('media_folder')) {
+      acc = [...acc, f];
+    }
+
+    if (f.has('fields')) {
+      const fields = f.get('fields')?.toArray() as EntryField[];
+      acc = [...acc, ...getFieldsWithMediaFolders(fields)];
+    }
+    if (f.has('field')) {
+      const field = f.get('field') as EntryField;
+      acc = [...acc, ...getFieldsWithMediaFolders([field])];
+    }
+
+    return acc;
+  }, [] as EntryField[]);
+
+  return fieldsWithMediaFolders;
+};
+
+const getFileFromSlug = (collection: Collection, slug: string) => {
+  return collection
+    .get('files')
+    ?.toArray()
+    .filter(f => f.get('name') === slug)[0];
+};
+
+export const selectFieldsWithMediaFolders = (collection: Collection, slug: string) => {
+  if (collection.has('folder')) {
+    const fields = collection.get('fields').toArray();
+    return getFieldsWithMediaFolders(fields);
+  } else if (collection.has('files')) {
+    const fields =
+      getFileFromSlug(collection, slug)
+        ?.get('fields')
+        .toArray() || [];
+    return getFieldsWithMediaFolders(fields);
+  }
+
+  return [];
+};
+
+export const selectMediaFolders = (state: State, collection: Collection, entry: EntryMap) => {
+  const fields = selectFieldsWithMediaFolders(collection, entry.get('slug'));
+  const folders = fields.map(f => selectMediaFolder(state.config, collection, entry, f));
+  if (collection.has('files')) {
+    const file = getFileFromSlug(collection, entry.get('slug'));
+    if (file) {
+      folders.unshift(selectMediaFolder(state.config, collection, entry, undefined));
+    }
+  }
+  if (collection.has('media_folder')) {
+    // stop evaluating media folders at collection level
+    collection = collection.delete('files');
+    folders.unshift(selectMediaFolder(state.config, collection, entry, undefined));
+  }
+
+  return folders;
+};
+
 export const selectFields = (collection: Collection, slug: string) =>
   selectors[collection.get('type')].fields(collection, slug);
 export const selectFolderEntryExtension = (collection: Collection) =>
@@ -122,10 +192,46 @@ export const selectAllowDeletion = (collection: Collection) =>
   selectors[collection.get('type')].allowDeletion(collection);
 export const selectTemplateName = (collection: Collection, slug: string) =>
   selectors[collection.get('type')].templateName(collection, slug);
+
+export const getFieldsNames = (fields: EntryField[], prefix = '') => {
+  let names = fields.map(f => `${prefix}${f.get('name')}`);
+
+  fields.forEach((f, index) => {
+    if (f.has('fields')) {
+      const fields = f.get('fields')?.toArray() as EntryField[];
+      names = [...names, ...getFieldsNames(fields, `${names[index]}.`)];
+    }
+    if (f.has('field')) {
+      const field = f.get('field') as EntryField;
+      names = [...names, ...getFieldsNames([field], `${names[index]}.`)];
+    }
+  });
+
+  return names;
+};
+
+export const selectField = (collection: Collection, key: string) => {
+  const array = keyToPathArray(key);
+  let name: string | undefined;
+  let field;
+  let fields = collection.get('fields', List<EntryField>()).toArray();
+  while ((name = array.shift()) && fields) {
+    field = fields.find(f => f.get('name') === name);
+    if (field?.has('fields')) {
+      fields = field?.get('fields')?.toArray() as EntryField[];
+    }
+    if (field?.has('field')) {
+      fields = [field?.get('field') as EntryField];
+    }
+  }
+
+  return field;
+};
+
 export const selectIdentifier = (collection: Collection) => {
   const identifier = collection.get('identifier_field');
   const identifierFields = identifier ? [identifier, ...IDENTIFIER_FIELDS] : IDENTIFIER_FIELDS;
-  const fieldNames = collection.get('fields', List<EntryField>()).map(field => field?.get('name'));
+  const fieldNames = getFieldsNames(collection.get('fields', List<EntryField>()).toArray());
   return identifierFields.find(id =>
     fieldNames.find(name => name?.toLowerCase().trim() === id.toLowerCase().trim()),
   );
