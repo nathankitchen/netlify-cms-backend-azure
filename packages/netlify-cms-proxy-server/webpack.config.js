@@ -27,7 +27,7 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        include: ['ol', 'redux-notifications', 'react-datetime', 'codemirror'].map(moduleNameToPath),
+        //include: ['ol', 'redux-notifications', 'react-datetime', 'codemirror'].map(moduleNameToPath),
         use: ['to-string-loader', 'css-loader'],
       },
     ],

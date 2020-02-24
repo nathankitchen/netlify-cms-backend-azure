@@ -1,4 +1,4 @@
-import { trimStart, trim, last} from 'lodash';
+import { trimStart, trim, last } from 'lodash';
 import semaphore, { Semaphore } from 'semaphore';
 import AuthenticationPage from './AuthenticationPage';
 import API, { API_NAME, AzureRepo } from './API';
@@ -22,15 +22,11 @@ import {
   User,
   unpublishedEntries,
   UnpublishedEntryMediaFile,
+  entriesByFiles
 } from 'netlify-cms-lib-util';
 import { getBlobSHA } from 'netlify-cms-lib-util/src';
 
 const MAX_CONCURRENT_DOWNLOADS = 10;
-
-/**
- * Keywords for inferring a status that will provide a deploy preview URL.
- */
-const PREVIEW_CONTEXT_KEYWORDS = ['deploy'];
 
 /**
  * Check a given status context string to determine if it provides a link to a
@@ -58,7 +54,6 @@ function isPreviewContext(context, previewContext) {
 **/
 
 export default class Azure implements Implementation {
-
   lock: AsyncLock;
   api: API | null;
   options: {
@@ -77,7 +72,7 @@ export default class Azure implements Implementation {
 
   _mediaDisplayURLSem?: Semaphore;
 
-  constructor(config : Config, options = {}) {
+  constructor(config: Config, options = {}) {
     this.options = {
       proxied: false,
       API: null,
@@ -86,9 +81,7 @@ export default class Azure implements Implementation {
     };
 
     if (!this.options.proxied) {
-
-      if (config.backend.repo === null || config.backend.repo === undefined)
-      {
+      if (config.backend.repo === null || config.backend.repo === undefined) {
         throw new Error('The Azure backend needs a "repo" in the backend configuration.');
       }
     }
@@ -118,31 +111,33 @@ export default class Azure implements Implementation {
    * Handle authentication by creating the Azure DevOps API object, which
    * will be used for future operations. Also load details of the current
    * user.
-   * 
+   *
    * @param state Oauth credentials containing implicit flow auth token.
    */
   async authenticate(state: Credentials) {
     this.token = state.token as string;
-    this.api = new API({
-      apiRoot: this.apiRoot,
-      repo: this.repo,
-      branch: this.branch,
-      path: '/',
-      squashMerges: this.squashMerges,
-      initialWorkflowStatus: this.options.initialWorkflowStatus,
-    },
-    this.token);
+    this.api = new API(
+      {
+        apiRoot: this.apiRoot,
+        repo: this.repo,
+        branch: this.branch,
+        path: '/',
+        squashMerges: this.squashMerges,
+        initialWorkflowStatus: this.options.initialWorkflowStatus,
+      },
+      this.token,
+    );
 
     // Get a JSON representation of the user object and capture the name and email
     // address for later use on commits.
     const user = await this.api.user();
-    this.api!.commitAuthor =  { name: user.displayName, email: user.emailAddress };
+    this.api!.commitAuthor = { name: user.displayName, email: user.emailAddress };
     return { name: user.displayName, token: state.token as string, ...user };
   }
-  
+
   /**
    * Log the user out by forgetting their access token.
-   * TODO: *Actual* logout by redirecting to: 
+   * TODO: *Actual* logout by redirecting to:
    * https://login.microsoftonline.com/{tenantId}/oauth2/logout?client_id={clientId}&post_logout_redirect_uri={baseUrl}
    */
   logout() {
@@ -155,28 +150,23 @@ export default class Azure implements Implementation {
   }
 
   entriesByFolder(collection: string, extension: string, depth: number) {
-    return this.api!
-      .listFiles(collection)
+    return this.api!.listFiles(collection)
       .then(files => {
         if (extension) {
           return files.filter(file => file.relativePath.endsWith('.' + extension));
         }
         return files;
       })
-    .then(this.fetchFiles);
+      .then(this.fetchFiles);
   }
 
   entriesByFiles(files: ImplementationFile[]) {
-    const listFiles = files.map((collectionFile : any)=> ({
-      path: collectionFile.get('file'),
-      label: collectionFile.get('label'),
-    }));
-    return this.fetchFiles(listFiles);
+    return entriesByFiles(files, this.api!.readFile.bind(this.api!), API_NAME);
   }
 
-  fetchFiles = (files: any)=> {
+  fetchFiles = (files: any) => {
     const sem = semaphore(MAX_CONCURRENT_DOWNLOADS);
-    const promises : any[] = [];
+    const promises: any[] = [];
     files.forEach((file: any) => {
       file.sha = file.objectId; // due to different element naming in Azure
       file.path = file.relativePath;
@@ -184,8 +174,7 @@ export default class Azure implements Implementation {
       promises.push(
         new Promise(resolve =>
           sem.take(() =>
-            this.api!
-              .readFile(file.path, file.objectId) // Azure
+            this.api!.readFile(file.path, file.objectId) // Azure
               .then(data => {
                 resolve({ file, data });
                 sem.leave();
@@ -208,7 +197,7 @@ export default class Azure implements Implementation {
   getEntry(path: string) {
     return this.api!.readFile(path).then(data => ({
       file: { path },
-      data: data as string
+      data: data as string,
     }));
   }
 
@@ -218,14 +207,15 @@ export default class Azure implements Implementation {
    */
   async getMedia(): Promise<ImplementationMediaFile[]> {
     return this.api!.listFiles(this.mediaFolder).then(async files => {
-      return await Promise.all(files.map(async ({ objectId, relativePath, size, url }) => {
-        
-        const name : string = last(relativePath.split('/')) || '';
+      return await Promise.all(
+        files.map(async ({ objectId, relativePath, size, url }) => {
+          const name: string = last(relativePath.split('/')) || '';
 
-        var blobUrl = await this.getMediaDisplayURL({ id: objectId, path: relativePath });
+          const blobUrl = await this.getMediaDisplayURL({ id: objectId, path: relativePath });
 
-        return { id: objectId, name, size, displayURL: blobUrl || url, path: relativePath }
-      }))
+          return { id: objectId, name, size, displayURL: blobUrl || url, path: relativePath };
+        }),
+      );
     });
   }
 
@@ -327,7 +317,8 @@ export default class Azure implements Implementation {
     return unpublishedEntries(listEntriesKeys, readUnpublishedBranchFile, API_NAME);
   }
 
-  async unpublishedEntry(  collection: string,
+  async unpublishedEntry(
+    collection: string,
     slug: string,
     {
       loadEntryMediaFiles = (branch: string, files: UnpublishedEntryMediaFile[]) =>
@@ -367,6 +358,7 @@ export default class Azure implements Implementation {
       'Failed to acquire delete entry lock',
     );
   }
+
   publishUnpublishedEntry(collection: string, slug: string) {
     // publishUnpublishedEntry is a transactional operation
     return runWithLock(
