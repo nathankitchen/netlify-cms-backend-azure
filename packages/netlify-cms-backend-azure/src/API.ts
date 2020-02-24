@@ -402,15 +402,18 @@ export default class API {
     });
   }
 
-  uploadAndCommit(items: any, comment = 'Creating new files', branch: string = this.branch) {
-    return this.getRef(this.branch).then((ref: AzureRef) => {
-      ref = ref || {
-        name: this.branchToRef(branch),
-        objectId: '0000000000000000000000000000000000000000',
-      };
+  uploadAndCommit(items: any, comment = 'Creating new files', branch: string = this.branch, newBranch = false) {
+    return this.getRef(branch).then(async (ref: AzureRef) => {
+      
+      if (ref == null) {
+        ref = await this.getRef(this.branch);
+      }
 
-      ref.name = this.branchToRef(branch);
+      if (newBranch) {
+        ref = new AzureRef(this.branchToRef(branch), ref.objectId); 
+      }
 
+      console.log(JSON.stringify(ref));
       const commit = new AzureCommit(comment);
 
       items.forEach((i: any) => {
@@ -653,7 +656,7 @@ export default class API {
     if (!unpublished) {
       const items = await this.getCommitItems(files, this.branch);
 
-      await this.uploadAndCommit(items, options.commitMessage, branch);
+      await this.uploadAndCommit(items, options.commitMessage, branch, true);
 
       await this.createPullRequest(
         branch,
@@ -661,25 +664,8 @@ export default class API {
         options.status || this.initialWorkflowStatus,
       );
     } else {
-      alert('Unpublished, apparently.');
-      const mergeRequest = await this.getBranchMergeRequest(branch);
-      //await this.rebaseMergeRequest(mergeRequest);
-      //const [items, diffs] = await Promise.all([
-      //  this.getCommitItems(files, branch),
-      //  this.getDifferences(branch),
-      //]);
-
-      // mark files for deletion
-      //for (const diff of diffs) {
-      //  if (!items.some(item => item.path === diff.new_path)) {
-      //    items.push({ action: CommitAction.DELETE, path: diff.new_path });
-      //  }
-      //}
-
-      //await this.uploadAndCommit(items, {
-      //  commitMessage: options.commitMessage.commitMessage,
-      //  branch,
-      //});
+      const items = await this.getCommitItems(files, branch);
+      await this.uploadAndCommit(items, options.commitMessage, branch, true);
     }
   }
 
