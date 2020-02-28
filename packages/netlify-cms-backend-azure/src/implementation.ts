@@ -158,7 +158,7 @@ export default class Azure implements Implementation {
         }
         return files;
       })
-      .then(this.fetchFiles);
+      .then(this.fetchFiles)
       .catch(() => []);
   }
 
