@@ -159,6 +159,7 @@ export default class Azure implements Implementation {
         return files;
       })
       .then(this.fetchFiles);
+      .catch(() => []);
   }
 
   entriesByFiles(files: ImplementationFile[]) {
