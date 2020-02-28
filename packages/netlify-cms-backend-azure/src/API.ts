@@ -20,6 +20,7 @@ import {
   statusToLabel,
   PreviewState,
 } from 'netlify-cms-lib-util';
+import { PullRequestState } from 'netlify-cms-backend-github/src/API';
 
 export const API_NAME = 'Azure DevOps';
 
@@ -139,6 +140,10 @@ class AzureCommitRenameChange extends AzureCommitChange {
     super(AzureCommitChangeType.RENAME, destination);
     this.sourceServerItem = source;
   }
+}
+
+function delay(ms: number) {
+  return new Promise( resolve => setTimeout(resolve, ms) );
 }
 
 /**
@@ -758,11 +763,20 @@ export default class API {
       },
     };
 
-    await this.requestJSON({
+    let response = await this.requestJSON({
       method: 'PATCH',
       url: `${this.endpointUrl}/pullrequests/${encodeURIComponent(mergeRequest.pullRequestId)}`,
       body: JSON.stringify(pullRequestCompletion),
     });
+
+    // We need to wait for Azure to complete the pull request to actually complete
+    // Sometimes this is instant, but frequently it is 1-3 seconds
+    while (response.mergeStatus === 'queued') {
+      await delay(500);
+      response = await this.requestJSON({
+        url: `${this.endpointUrl}/pullrequests/${encodeURIComponent(mergeRequest.pullRequestId)}`
+      })
+    }
   }
 
   /**
