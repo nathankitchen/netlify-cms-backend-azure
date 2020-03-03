@@ -79,6 +79,10 @@ export interface AzureReferenceLinks {
 
 export interface AzureGitTreeEntryRef {
   gitObjectType: string;
+  objectId: string;
+  relativePath: string;
+  size: number;
+  url: string;
 }
 
 // https://docs.microsoft.com/en-us/rest/api/azure/devops/git/pull%20requests/get%20pull%20request?view=azure-devops-rest-5.1#gitpullrequest
@@ -570,11 +574,12 @@ export default class API {
    * Retrieve statuses for a given SHA. Unrelated to the editorial workflow
    * concept of entry "status". Useful for things like deploy preview links.
    */
-  async getStatuses() {
-    // async getStatuses(collection: string, slug: string) {
-    // const contentKey = generateContentKey(collection, slug);
-    // const branch = this.branchFromContentKey(contentKey);
-    // const mergeRequest = await this.getBranchMergeRequest(branch);
+  // async getStatuses(collection: string, slug: string) {
+  async getStatuses(collection: string, slug: string) {
+    const contentKey = generateContentKey(collection, slug);
+    const branch = this.branchFromContentKey(contentKey);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    await this.getBranchMergeRequest(branch);
 
     const statuses: any[] = [];
     // eslint-disable-next-line @typescript-eslint/camelcase
